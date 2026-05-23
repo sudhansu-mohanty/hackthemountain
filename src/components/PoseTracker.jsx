@@ -1,375 +1,178 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera as CameraIcon, Video, VideoOff, Activity, AlertCircle, Info, RefreshCw, UploadCloud, FolderOpen, Play as PlayIcon, Pause as PauseIcon } from 'lucide-react';
 import { extractMetrics } from '../utils/biomechanics';
 
 const CONNECTIONS = [
-  [11, 12], // Shoulder to shoulder
-  [11, 13], [13, 15], // Left arm (Shoulder -> Elbow -> Wrist)
-  [12, 14], [14, 16], // Right arm (Shoulder -> Elbow -> Wrist)
-  [11, 23], [12, 24], // Shoulders to hips
-  [23, 24], // Hip to hip
-  [23, 25], [25, 27], // Left leg (Hip -> Knee -> Ankle)
-  [24, 26], [26, 28]  // Right leg (Hip -> Knee -> Ankle)
+  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+  [11, 23], [12, 24], [23, 24],
+  [23, 25], [25, 27], [24, 26], [26, 28],
 ];
 
-export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryReady }) {
+const S = { fontFamily: 'Sora, sans-serif' };
+const H = { fontFamily: 'Hanken Grotesk, sans-serif' };
+
+export default function PoseTracker({ onAnalysisComplete, showLanding, onStartCapture }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const poseInstanceRef = useRef(null);
   const cameraInstanceRef = useRef(null);
   const latestLandmarksRef = useRef(null);
   const requestRef = useRef(null);
-  
+  const recordingIntervalRef = useRef(null);
+  const timerIntervalRef = useRef(null);
+
   const [modelLoading, setModelLoading] = useState(true);
-  const [cameraActive, setCameraActive] = useState(false);
   const [error, setError] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [history, setHistory] = useState([]);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [analysisProgress, setAnalysisProgress] = useState(0);
-
-  // Video source mode: 'webcam' | 'file'
   const [sourceMode, setSourceMode] = useState('webcam');
   const [uploadedFileUrl, setUploadedFileUrl] = useState(null);
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
-  
-  // For live stats rendering
-  const [liveMetrics, setLiveMetrics] = useState({
-    leftKnee: 0,
-    rightKnee: 0,
-    leftElbow: 0,
-    rightElbow: 0,
-    kneeAsymmetry: 0,
-    leftHip: 0,
-    rightHip: 0,
-    torsoTilt: 0
-  });
+  const [liveMetrics, setLiveMetrics] = useState({ leftKnee: 0, rightKnee: 0, leftElbow: 0, rightElbow: 0, kneeAsymmetry: 0 });
+  const [captureStarted, setCaptureStarted] = useState(false);
+  const [bodyDetected, setBodyDetected] = useState(false);
 
-  const recordingIntervalRef = useRef(null);
-  const timerIntervalRef = useRef(null);
-
-  const sourceModeRef = useRef(sourceMode);
-  const isRecordingRef = useRef(isRecording);
-  const historyRef = useRef([]);
-  const lastProcessedTimeRef = useRef(-200);
-  const activeAnalysisVideoRef = useRef(null);
-
-  // Keep refs updated with current state values to avoid closure traps in loops
-  useEffect(() => {
-    sourceModeRef.current = sourceMode;
-  }, [sourceMode]);
-
-  useEffect(() => {
-    isRecordingRef.current = isRecording;
-  }, [isRecording]);
-
-  // Drawing helper
   const drawSkeleton = (landmarks) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!landmarks) return;
-
-    // Draw connection lines (bones)
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
-
     CONNECTIONS.forEach(([iA, iB]) => {
-      const ptA = landmarks[iA];
-      const ptB = landmarks[iB];
-
+      const ptA = landmarks[iA], ptB = landmarks[iB];
       if (ptA && ptB && (ptA.visibility || 0) > 0.5 && (ptB.visibility || 0) > 0.5) {
-        const xA = ptA.x * width;
-        const yA = ptA.y * height;
-        const xB = ptB.x * width;
-        const yB = ptB.y * height;
-
-        const isKeySegment = 
-          (iA === 23 && iB === 25) || (iA === 25 && iB === 27) || // left leg
-          (iA === 24 && iB === 26) || (iA === 26 && iB === 28) || // right leg
-          (iA === 11 && iB === 13) || (iA === 13 && iB === 15) || // left arm
-          (iA === 12 && iB === 14) || (iA === 14 && iB === 16);  // right arm
-
+        const isKey = [11,12,13,14,15,16,23,24,25,26,27,28].includes(iA);
         ctx.beginPath();
-        ctx.moveTo(xA, yA);
-        ctx.lineTo(xB, yB);
-
-        if (isKeySegment) {
-          ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)'; // Neon cyan
-          ctx.shadowColor = 'rgba(6, 182, 212, 0.5)';
-          ctx.shadowBlur = 6;
-        } else {
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)'; // Slate gray for torso/shoulders
-          ctx.shadowBlur = 0;
-        }
+        ctx.moveTo(ptA.x * canvas.width, ptA.y * canvas.height);
+        ctx.lineTo(ptB.x * canvas.width, ptB.y * canvas.height);
+        ctx.strokeStyle = isKey ? 'rgba(255,225,109,0.8)' : 'rgba(208,198,171,0.3)';
+        ctx.shadowColor = isKey ? 'rgba(255,225,109,0.35)' : 'transparent';
+        ctx.shadowBlur = isKey ? 4 : 0;
         ctx.stroke();
       }
     });
-
-    ctx.shadowBlur = 0; // Reset shadow blur for points
-
-    // Draw joints
-    landmarks.forEach((landmark, index) => {
-      if ((landmark.visibility || 0) > 0.5) {
-        const x = landmark.x * width;
-        const y = landmark.y * height;
-
-        const isPrimaryTracked = [13, 14, 25, 26].includes(index); // Elbows and Knees
-        const isSecondaryTracked = [11, 12, 15, 16, 23, 24, 27, 28].includes(index); // Hips, shoulders, wrists, ankles
-
+    ctx.shadowBlur = 0;
+    landmarks.forEach((lm, index) => {
+      if ((lm.visibility || 0) > 0.5) {
+        const x = lm.x * canvas.width, y = lm.y * canvas.height;
+        const isPrimary = [13, 14, 25, 26].includes(index);
+        const isSecondary = [11, 12, 15, 16, 23, 24, 27, 28].includes(index);
         ctx.beginPath();
-        ctx.arc(x, y, isPrimaryTracked ? 7 : (isSecondaryTracked ? 5 : 3), 0, 2 * Math.PI);
-
-        if (isPrimaryTracked) {
-          ctx.fillStyle = '#10b981'; // Neon Emerald
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          
-          // Draw pulsating ring
+        ctx.arc(x, y, isPrimary ? 6 : isSecondary ? 4 : 2.5, 0, 2 * Math.PI);
+        ctx.fillStyle = isPrimary ? '#ffe16d' : isSecondary ? '#e9c400' : 'rgba(226,226,226,0.4)';
+        ctx.fill();
+        if (isPrimary) {
           ctx.beginPath();
-          ctx.arc(x, y, 11, 0, 2 * Math.PI);
-          ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+          ctx.arc(x, y, 10, 0, 2 * Math.PI);
+          ctx.strokeStyle = 'rgba(255,225,109,0.35)';
           ctx.lineWidth = 1;
           ctx.stroke();
-        } else if (isSecondaryTracked) {
-          ctx.fillStyle = '#06b6d4'; // Cyan
-        } else {
-          ctx.fillStyle = 'rgba(226, 232, 240, 0.5)';
         }
-        ctx.fill();
       }
     });
   };
 
-  // Webcam controls
   const stopWebcam = () => {
     if (cameraInstanceRef.current) {
-      try {
-        cameraInstanceRef.current.stop();
-      } catch (e) {
-        console.error("Error stopping camera:", e);
-      }
+      try { cameraInstanceRef.current.stop(); } catch (e) {}
       cameraInstanceRef.current = null;
     }
-    setCameraActive(false);
   };
 
   const startWebcam = () => {
     if (!poseInstanceRef.current || !videoRef.current) return;
-    
     stopWebcam();
     setError(null);
-
-    // Clear video src bindings
-    if (videoRef.current) {
-      videoRef.current.src = '';
-      videoRef.current.srcObject = null;
-    }
-
+    if (videoRef.current) { videoRef.current.src = ''; videoRef.current.srcObject = null; }
     try {
       const camera = new window.Camera(videoRef.current, {
         onFrame: async () => {
-          if (videoRef.current && cameraInstanceRef.current && sourceModeRef.current === 'webcam') {
+          if (videoRef.current && cameraInstanceRef.current && sourceMode === 'webcam')
             await poseInstanceRef.current.send({ image: videoRef.current });
-          }
         },
-        width: 640,
-        height: 480
+        width: 640, height: 480,
       });
-      
-      camera.start()
-        .then(() => {
-          setCameraActive(true);
-        })
-        .catch((err) => {
-          console.error("Camera start failed", err);
-          setError("Camera permission denied or camera is in use. Please enable access in browser settings.");
-        });
+      camera.start().catch(() => setError('Camera permission denied. Please enable access in browser settings.'));
       cameraInstanceRef.current = camera;
-    } catch (err) {
-      console.error("Failed to initialize camera constructor", err);
-      setError("Webcam hardware access error. Check device permissions.");
+    } catch {
+      setError('Webcam hardware error. Check device permissions.');
     }
   };
 
-  // Animation frame loop for file video stream - optimized to skip intermediate frames
   const processFileFrameLoop = async () => {
     const video = videoRef.current;
-    if (video && !video.paused && !video.ended && sourceModeRef.current === 'file' && !isRecordingRef.current) {
-      const currentTimeMs = Math.round(video.currentTime * 1000);
-      
-      // Only invoke BlazePose CNN if video currentTime has advanced by at least 200ms
-      if (currentTimeMs - lastProcessedTimeRef.current >= 200) {
-        lastProcessedTimeRef.current = currentTimeMs;
-        try {
-          if (poseInstanceRef.current) {
-            await poseInstanceRef.current.send({ image: video });
-          }
-        } catch (e) {
-          console.error("Error processing video frame:", e);
-        }
-      }
+    if (video && !video.paused && !video.ended && sourceMode === 'file') {
+      try { await poseInstanceRef.current.send({ image: video }); } catch {}
       requestRef.current = requestAnimationFrame(processFileFrameLoop);
     }
   };
 
-  // Initialize MediaPipe Pose CNN
   useEffect(() => {
     let active = true;
-
-    const checkAndInitPose = () => {
-      if (!window.Pose || !window.Camera) {
-        setTimeout(checkAndInitPose, 150);
-        return;
-      }
-
+    const checkAndInit = () => {
+      if (!window.Pose || !window.Camera) { setTimeout(checkAndInit, 150); return; }
       try {
-        const pose = new window.Pose({
-          locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-          }
-        });
-
-        pose.setOptions({
-          modelComplexity: 1,
-          smoothLandmarks: true,
-          enableSegmentation: false,
-          smoothSegmentation: false,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5
-        });
-
+        const pose = new window.Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
+        pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
         pose.onResults((results) => {
           if (!active) return;
           latestLandmarksRef.current = results.poseLandmarks;
-          
+          setBodyDetected(!!results.poseLandmarks);
           if (results.poseLandmarks) {
             const metrics = extractMetrics(results.poseLandmarks, 0);
-            if (metrics) {
-              setLiveMetrics({
-                leftKnee: metrics.left_knee_angle,
-                rightKnee: metrics.right_knee_angle,
-                leftElbow: metrics.left_elbow_angle,
-                rightElbow: metrics.right_elbow_angle,
-                kneeAsymmetry: metrics.knee_asymmetry_delta,
-                leftHip: metrics.left_hip_angle,
-                rightHip: metrics.right_hip_angle,
-                torsoTilt: metrics.torso_tilt_angle
-              });
-            }
+            if (metrics) setLiveMetrics({ leftKnee: metrics.left_knee_angle, rightKnee: metrics.right_knee_angle, leftElbow: metrics.left_elbow_angle, rightElbow: metrics.right_elbow_angle, kneeAsymmetry: metrics.knee_asymmetry_delta });
             drawSkeleton(results.poseLandmarks);
-
-            // Deterministic sampling for video file uploads based on background seeking
-            const analysisVideo = activeAnalysisVideoRef.current || videoRef.current;
-            if (analysisVideo && sourceModeRef.current === 'file' && isRecordingRef.current) {
-              const currentTimeMs = Math.round(analysisVideo.currentTime * 1000);
-              const frameMetrics = extractMetrics(results.poseLandmarks, currentTimeMs);
-              if (frameMetrics) {
-                historyRef.current.push(frameMetrics);
-                setHistory([...historyRef.current]);
-              }
-            }
+          } else {
+            const canvas = canvasRef.current;
+            if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
           }
         });
-
         poseInstanceRef.current = pose;
         setModelLoading(false);
-      } catch (err) {
-        console.error("Error creating MediaPipe Pose instance:", err);
-        setError("Failed to initialize MediaPipe Pose tracking. Please reload page.");
-      }
+      } catch { setError('Failed to initialize BlazePose. Please reload.'); }
     };
-
-    checkAndInitPose();
-
-    // Clean up
+    checkAndInit();
     return () => {
       active = false;
       stopWebcam();
       if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      
-      if (poseInstanceRef.current) {
-        try {
-          poseInstanceRef.current.close();
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      if (poseInstanceRef.current) try { poseInstanceRef.current.close(); } catch {}
     };
   }, []);
 
-  // Manage source mode changes
   useEffect(() => {
-    if (modelLoading) return;
-
+    if (modelLoading || !captureStarted) return;
     if (sourceMode === 'webcam') {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       setIsPlaying(false);
       startWebcam();
     } else {
       stopWebcam();
-      // Revoke any camera feed links and load file URL if present
       if (videoRef.current) {
         videoRef.current.srcObject = null;
-        if (uploadedFileUrl) {
-          videoRef.current.src = uploadedFileUrl;
-          videoRef.current.load();
-        } else {
-          videoRef.current.src = '';
-        }
+        videoRef.current.src = uploadedFileUrl || '';
+        if (uploadedFileUrl) videoRef.current.load();
       }
     }
-  }, [sourceMode, modelLoading]);
+  }, [sourceMode, modelLoading, captureStarted]);
 
-  // Bind video events for uploaded files
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
-    const handlePlay = () => {
-      setIsPlaying(true);
-      if (sourceModeRef.current === 'file') {
-        if (requestRef.current) cancelAnimationFrame(requestRef.current);
-        requestRef.current = requestAnimationFrame(processFileFrameLoop);
-      }
-    };
-
-    const handlePause = () => {
-      setIsPlaying(false);
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      
-      // Auto submit if recording file reaches the end
-      if (isRecordingRef.current && sourceModeRef.current === 'file') {
-        stopRecording();
-      }
-    };
-
+    const handlePlay = () => { setIsPlaying(true); if (sourceMode === 'file') requestRef.current = requestAnimationFrame(processFileFrameLoop); };
+    const handlePause = () => { setIsPlaying(false); if (requestRef.current) cancelAnimationFrame(requestRef.current); };
+    const handleEnded = () => { setIsPlaying(false); if (requestRef.current) cancelAnimationFrame(requestRef.current); if (isRecording && sourceMode === 'file') stopRecording(); };
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('ended', handleEnded);
+    return () => { video.removeEventListener('play', handlePlay); video.removeEventListener('pause', handlePause); video.removeEventListener('ended', handleEnded); };
+  }, [sourceMode, isRecording, uploadedFileUrl]);
 
-    return () => {
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('ended', handleEnded);
-    };
-  }, [uploadedFileUrl]);
-
-  // Make canvas responsive
   useEffect(() => {
     const handleResize = () => {
       if (videoRef.current && canvasRef.current) {
@@ -377,547 +180,278 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
         canvasRef.current.height = videoRef.current.videoHeight || 480;
       }
     };
-
     const video = videoRef.current;
-    if (video) {
-      video.addEventListener('loadedmetadata', handleResize);
-    }
-    
+    if (video) video.addEventListener('loadedmetadata', handleResize);
     window.addEventListener('resize', handleResize);
-    return () => {
-      if (video) {
-        video.removeEventListener('loadedmetadata', handleResize);
-      }
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => { if (video) video.removeEventListener('loadedmetadata', handleResize); window.removeEventListener('resize', handleResize); };
   }, []);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Revoke old object URL to prevent leaks
-    if (uploadedFileUrl) {
-      URL.revokeObjectURL(uploadedFileUrl);
-    }
-
-    const fileUrl = URL.createObjectURL(file);
-    setUploadedFileUrl(fileUrl);
+    if (uploadedFileUrl) URL.revokeObjectURL(uploadedFileUrl);
+    const url = URL.createObjectURL(file);
+    setUploadedFileUrl(url);
     setUploadedFileName(file.name);
     setIsRecording(false);
     setHistory([]);
-    historyRef.current = [];
-    
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-      videoRef.current.src = fileUrl;
-      videoRef.current.load();
-    }
-  };
-
-  const analyzeVideoFile = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    // 1. Play the main visual video tag at normal pace (1.0x) so the user can watch it
-    video.currentTime = 0;
-    video.playbackRate = 1.0;
-    video.play().catch(e => console.error("Visual video playback failed:", e));
-    setIsPlaying(true);
-
-    // 2. Configure recording states
-    setIsRecording(true);
-    isRecordingRef.current = true;
-    setHistory([]);
-    historyRef.current = [];
-    setAnalysisProgress(0);
-    setRecordingSeconds(0);
-
-    // 3. Create a background video element to run the fast scan, appended to the DOM to prevent browser decoder throttling
-    const bgVideo = document.createElement('video');
-    bgVideo.src = uploadedFileUrl;
-    bgVideo.muted = true;
-    bgVideo.playsInline = true;
-    bgVideo.preload = "auto";
-    bgVideo.style.position = 'absolute';
-    bgVideo.style.width = '1px';
-    bgVideo.style.height = '1px';
-    bgVideo.style.opacity = '0.01';
-    bgVideo.style.pointerEvents = 'none';
-    bgVideo.style.top = '0';
-    bgVideo.style.left = '0';
-    document.body.appendChild(bgVideo); // Attach to DOM to keep decoder active
-
-    activeAnalysisVideoRef.current = bgVideo; // Set ref for timestamp matching in onResults
-
-    await new Promise((resolve) => {
-      if (bgVideo.duration) {
-        resolve();
-      } else {
-        const checkMeta = () => {
-          bgVideo.removeEventListener('loadedmetadata', checkMeta);
-          bgVideo.removeEventListener('loadeddata', checkMeta);
-          resolve();
-        };
-        bgVideo.addEventListener('loadedmetadata', checkMeta);
-        bgVideo.addEventListener('loadeddata', checkMeta);
-      }
-      bgVideo.load();
-    });
-
-    const duration = bgVideo.duration || 10;
-    let currentTime = 0;
-
-    // Helper promise to seek and process each frame programmatically on the offscreen video
-    const seekAndProcessFrame = (time) => {
-      return new Promise((resolve) => {
-        const onSeeked = async () => {
-          bgVideo.removeEventListener('seeked', onSeeked);
-          if (poseInstanceRef.current) {
-            try {
-              await poseInstanceRef.current.send({ image: bgVideo });
-            } catch (err) {
-              console.error("Frame processing error during seek:", err);
-            }
-          }
-          resolve();
-        };
-        bgVideo.addEventListener('seeked', onSeeked);
-        bgVideo.currentTime = time;
-      });
-    };
-
-    try {
-      while (currentTime <= duration && isRecordingRef.current) {
-        await seekAndProcessFrame(currentTime);
-        setAnalysisProgress(Math.round((currentTime / duration) * 100));
-        currentTime += 0.2; // Seek at 200ms (5 FPS) intervals
-      }
-    } catch (err) {
-      console.error("Analysis loop error:", err);
-    }
-
-    // Clean up background video reference and remove from DOM
-    activeAnalysisVideoRef.current = null;
-    if (bgVideo.parentNode) {
-      bgVideo.parentNode.removeChild(bgVideo);
-    }
-
-    // Trigger callback to initiate Gemini analysis in the background
-    if (isRecordingRef.current && onBackgroundTelemetryReady) {
-      onBackgroundTelemetryReady(historyRef.current);
-    }
+    if (videoRef.current) { videoRef.current.srcObject = null; videoRef.current.src = url; videoRef.current.load(); }
   };
 
   const startRecording = () => {
     if (isRecording) return;
-    
-    if (sourceMode === 'file') {
-      analyzeVideoFile();
-      return;
-    }
-
+    const tempHistory = [];
     setIsRecording(true);
     setHistory([]);
-    historyRef.current = [];
-    lastProcessedTimeRef.current = -200; // Reset last processed video frame timestamp
     setRecordingSeconds(0);
-    
     let startTime = Date.now();
-    const tempHistory = [];
-
-    // Slice frames every 200ms (5 FPS) - Only run wall-clock interval for webcam
-    if (sourceMode === 'webcam') {
-      recordingIntervalRef.current = setInterval(() => {
-        const elapsedMs = Date.now() - startTime;
-        const landmarks = latestLandmarksRef.current;
-        
-        if (landmarks) {
-          const frameMetrics = extractMetrics(landmarks, elapsedMs);
-          if (frameMetrics) {
-            tempHistory.push(frameMetrics);
-            historyRef.current = [...tempHistory];
-            setHistory([...tempHistory]);
-          }
-        }
-      }, 200);
+    if (sourceMode === 'file' && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().then(() => { setIsPlaying(true); startTime = Date.now(); }).catch(() => setIsRecording(false));
     }
-
-    // Recording duration stopwatch
+    recordingIntervalRef.current = setInterval(() => {
+      const landmarks = latestLandmarksRef.current;
+      if (landmarks) {
+        const m = extractMetrics(landmarks, Date.now() - startTime);
+        if (m) { tempHistory.push(m); setHistory([...tempHistory]); }
+      }
+    }, 200);
     timerIntervalRef.current = setInterval(() => {
-      setRecordingSeconds((prev) => prev + 1);
+      setRecordingSeconds((prev) => {
+        if (prev + 1 >= 15) stopRecording();
+        return prev + 1;
+      });
     }, 1000);
   };
 
   const stopRecording = () => {
-    if (!isRecordingRef.current) return;
+    if (recordingIntervalRef.current) { clearInterval(recordingIntervalRef.current); recordingIntervalRef.current = null; }
+    if (timerIntervalRef.current) { clearInterval(timerIntervalRef.current); timerIntervalRef.current = null; }
+    if (sourceMode === 'file' && videoRef.current) { videoRef.current.pause(); setIsPlaying(false); }
     setIsRecording(false);
-    isRecordingRef.current = false;
-
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current);
-      recordingIntervalRef.current = null;
-    }
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-
-    if (sourceModeRef.current === 'file' && videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.playbackRate = 1.0; // Reset playback rate to normal
-      setIsPlaying(false);
-    }
-    
-    setIsRecording(false);
-    
-    const finalHistory = historyRef.current;
-    if (finalHistory.length > 0) {
-      onAnalysisComplete(finalHistory, sourceModeRef.current);
-    } else {
-      alert("No movement data was captured. Ensure your body is fully visible in the camera frame and try again.");
-    }
+    setHistory((h) => {
+      if (h.length > 0) onAnalysisComplete(h);
+      else alert('No movement data captured. Ensure your full body is visible and try again.');
+      return h;
+    });
   };
 
-  const togglePlayback = () => {
-    const video = videoRef.current;
-    if (!video) return;
+  const handleLiveRecord = () => { setCaptureStarted(true); setSourceMode('webcam'); if (onStartCapture) onStartCapture(); };
+  const handleUploadVideo = () => { setCaptureStarted(true); setSourceMode('file'); if (onStartCapture) onStartCapture(); };
 
-    if (isPlaying) {
-      video.pause();
-    } else {
-      video.play().catch(e => console.error(e));
-    }
-  };
+  // ── LANDING ──────────────────────────────────────────────────────────────────
+  if (showLanding) {
+    return (
+      <div style={{ backgroundColor: '#0c0f0f' }}>
+        {/* Hero */}
+        <section style={{ position: 'relative', minHeight: '520px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 20px', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 10%, rgba(255,255,255,0.05) 0%, transparent 55%), #0c0f0f' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(12,15,15,0) 30%, rgba(12,15,15,0.9) 70%, #0c0f0f 100%)' }} />
+          <div style={{ position: 'relative', zIndex: 10, marginBottom: '40px', maxWidth: '480px' }}>
+            <h2 style={{ ...S, fontSize: '40px', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#fff6df', marginBottom: '16px' }}>
+              Your Stage, Your Director.
+            </h2>
+            <p style={{ ...H, fontSize: '16px', lineHeight: 1.6, color: '#d0c6ab', opacity: 0.8, marginBottom: '32px' }}>
+              Precision analytics meets cinematic storytelling. Capture your mastery with the world's most advanced performance engine.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button onClick={handleLiveRecord}
+                style={{ width: '100%', backgroundColor: '#ffd700', color: '#3a3000', padding: '16px', ...H, fontWeight: 600, fontSize: '13px', letterSpacing: '0.12em', textTransform: 'uppercase', border: 'none', borderRadius: '2px', cursor: 'pointer' }}>
+                Live Performance Record
+              </button>
+              <button onClick={handleUploadVideo}
+                style={{ width: '100%', backgroundColor: 'transparent', color: '#e2e2e2', padding: '16px', ...H, fontWeight: 600, fontSize: '13px', letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid rgba(226,226,226,0.2)', borderRadius: '2px', cursor: 'pointer' }}>
+                Upload Existing Video
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Studio Precision */}
+        <section style={{ padding: '64px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '40px' }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: '#4d4732' }} />
+            <h3 style={{ ...S, fontSize: '13px', fontWeight: 600, color: '#ffe16d', textTransform: 'uppercase', letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>Studio Precision</h3>
+            <div style={{ flex: 1, height: '1px', backgroundColor: '#4d4732' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {[
+              { icon: 'analytics', title: 'Biometric Analysis', desc: 'Real-time posture, velocity, and alignment tracking via neural mapping.', cta: 'View Engine' },
+              { icon: 'movie', title: 'Cinematic Feedback', desc: 'Dynamic lighting overlays and frame-by-frame professional critiques.', cta: 'Explore Tools' },
+            ].map(({ icon, title, desc, cta }) => (
+              <div key={title}
+                style={{ backgroundColor: '#1a1c1c', border: '1px solid #4d4732', padding: '32px', position: 'relative', overflow: 'hidden', borderRadius: '2px' }}>
+                <div style={{ position: 'absolute', right: '-24px', bottom: '-24px', opacity: 0.05 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '120px', color: '#ffe16d' }}>{icon}</span>
+                </div>
+                <span className="material-symbols-outlined" style={{ color: '#ffe16d', marginBottom: '16px', display: 'block' }}>{icon}</span>
+                <h4 style={{ ...S, fontWeight: 600, fontSize: '20px', color: '#e2e2e2', marginBottom: '8px' }}>{title}</h4>
+                <p style={{ ...H, fontSize: '14px', lineHeight: 1.6, color: '#d0c6ab', marginBottom: '16px' }}>{desc}</p>
+                <span style={{ ...H, fontSize: '12px', fontWeight: 600, color: '#ffe16d', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {cta} <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Weekly Momentum */}
+        <section style={{ padding: '0 20px 128px' }}>
+          <h3 style={{ ...S, fontWeight: 600, fontSize: '13px', color: '#ffe16d', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Weekly Momentum</h3>
+          <p style={{ ...H, fontSize: '12px', color: '#d0c6ab', marginBottom: '32px' }}>Current Path to Mastery</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {[{ label: 'Biomechanics Form', pct: 88 }, { label: 'Symmetry Score', pct: 64 }, { label: 'Timing Ratio', pct: 42 }].map(({ label, pct }) => (
+              <div key={label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ ...H, fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#e2e2e2' }}>{label}</span>
+                  <span style={{ ...H, fontSize: '12px', color: '#ffe16d' }}>{pct}%</span>
+                </div>
+                <div style={{ height: '2px', backgroundColor: 'rgba(77,71,50,0.4)', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#ffe16d', boxShadow: '0 0 8px rgba(233,196,0,0.4)' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // ── CAPTURE ───────────────────────────────────────────────────────────────────
+  const canRecord = !modelLoading && (
+    (sourceMode === 'webcam' && !error && bodyDetected) ||
+    (sourceMode === 'file' && !!uploadedFileUrl)
+  );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto w-full px-4 py-8">
-      {/* LEFT: Video & Canvas Capture Area */}
-      <div className="flex-1 flex flex-col items-center">
-        {/* SOURCE SWITCHER TABS */}
-        <div className="flex gap-2 mb-4 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 w-full max-w-2xl">
-          <button
-            type="button"
-            disabled={isRecording}
-            onClick={() => setSourceMode('webcam')}
-            className={`flex-1 py-2.5 px-4 rounded-lg font-orbitron font-bold text-xs tracking-wider transition-all duration-300 ${
-              isRecording ? 'opacity-40 cursor-not-allowed' : ''
-            } ${
-              sourceMode === 'webcam'
-                ? 'bg-cyan-500 text-slate-950 shadow-lg font-black'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            📷 WEBCAM FEED
-          </button>
-          <button
-            type="button"
-            disabled={isRecording}
-            onClick={() => setSourceMode('file')}
-            className={`flex-1 py-2.5 px-4 rounded-lg font-orbitron font-bold text-xs tracking-wider transition-all duration-300 ${
-              isRecording ? 'opacity-40 cursor-not-allowed' : ''
-            } ${
-              sourceMode === 'file'
-                ? 'bg-cyan-500 text-slate-950 shadow-lg font-black'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            📁 UPLOAD VIDEO
-          </button>
+    <div style={{ backgroundColor: '#0c0f0f', minHeight: '100%', paddingBottom: '16px' }}>
+      {/* Source tabs */}
+      <div style={{ padding: '16px 20px 0' }}>
+        <div style={{ display: 'flex', gap: '6px', backgroundColor: '#1a1c1c', border: '1px solid #4d4732', padding: '6px', borderRadius: '2px' }}>
+          {[{ id: 'webcam', label: '📷  Webcam' }, { id: 'file', label: '📁  Upload Video' }].map(({ id, label }) => (
+            <button key={id} disabled={isRecording} onClick={() => setSourceMode(id)}
+              style={{ flex: 1, padding: '10px 16px', borderRadius: '2px', border: 'none', cursor: isRecording ? 'not-allowed' : 'pointer', backgroundColor: sourceMode === id ? '#ffd700' : 'transparent', color: sourceMode === id ? '#3a3000' : '#c9c6c5', ...H, fontWeight: 600, fontSize: '12px', letterSpacing: '0.08em', textTransform: 'uppercase', opacity: isRecording ? 0.5 : 1 }}>
+              {label}
+            </button>
+          ))}
         </div>
+      </div>
 
-        <div className="relative w-full aspect-[4/3] max-w-2xl bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center">
-          {/* HTML5 Video Element */}
-          <video
-            ref={videoRef}
-            className={`w-full h-full object-cover pointer-events-none ${sourceMode === 'webcam' ? 'scale-x-[-1]' : ''}`}
-            playsInline
-            muted
-          />
+      {/* Viewfinder */}
+      <div style={{ position: 'relative', margin: '12px 20px 0', aspectRatio: '4/3', backgroundColor: '#0c0f0f', border: '1px solid #4d4732', overflow: 'hidden', borderRadius: '2px' }}>
+        <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover', transform: sourceMode === 'webcam' ? 'scaleX(-1)' : 'none', display: 'block' }} playsInline muted />
+        <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', transform: sourceMode === 'webcam' ? 'scaleX(-1)' : 'none' }} />
 
-          {/* Precise Drawing Overlay */}
-          <canvas
-            ref={canvasRef}
-            className={`absolute top-0 left-0 w-full h-full object-cover ${sourceMode === 'webcam' ? 'scale-x-[-1]' : ''}`}
-          />
+        {sourceMode === 'file' && !uploadedFileUrl && (
+          <label style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(12,15,15,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', zIndex: 20 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#ffe16d' }}>upload</span>
+            <span style={{ ...S, fontWeight: 600, fontSize: '14px', color: '#e2e2e2', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Upload Kinematic Video</span>
+            <span style={{ ...H, fontSize: '12px', color: '#d0c6ab' }}>Tap to browse MP4 / WebM</span>
+            <input type="file" accept="video/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+          </label>
+        )}
 
-          {/* Drag & Drop File Upload Overlay */}
-          {sourceMode === 'file' && !uploadedFileUrl && (
-            <label className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 cursor-pointer p-8 text-center hover:bg-slate-900/40 transition-colors z-20">
-              <UploadCloud className="h-12 w-12 text-cyan-400 animate-pulse" />
-              <div className="flex flex-col gap-1">
-                <span className="font-orbitron font-bold text-sm text-slate-200 uppercase tracking-wider">
-                  Upload Kinematic Video
-                </span>
-                <span className="text-xs text-slate-500">
-                  Drag and drop or browse MP4 / WebM files
-                </span>
-              </div>
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
+        {modelLoading && (
+          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(12,15,15,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', zIndex: 30 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '40px', color: '#ffe16d', animation: 'aura-spin 1.2s linear infinite' }}>sync</span>
+            <p style={{ ...S, fontWeight: 600, fontSize: '14px', color: '#e2e2e2', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Initializing System</p>
+            <p style={{ ...H, fontSize: '12px', color: '#d0c6ab', textAlign: 'center', maxWidth: '260px' }}>Downloading BlazePose CNN model via WebGL...</p>
+          </div>
+        )}
+
+        {error && !modelLoading && sourceMode === 'webcam' && (
+          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(12,15,15,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '24px', zIndex: 30 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '40px', color: '#ffb4ab' }}>camera_off</span>
+            <p style={{ ...H, fontSize: '13px', color: '#ffdad6', textAlign: 'center', lineHeight: 1.5 }}>{error}</p>
+            <button onClick={startWebcam} style={{ ...H, fontWeight: 600, fontSize: '12px', color: '#ffe16d', border: '1px solid #ffe16d', padding: '10px 20px', borderRadius: '2px', backgroundColor: 'transparent', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Retry</button>
+          </div>
+        )}
+
+        {isRecording && (
+          <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(12,15,15,0.85)', border: '1px solid rgba(255,180,171,0.3)', padding: '6px 12px', borderRadius: '20px', backdropFilter: 'blur(8px)', zIndex: 10 }}>
+            <span style={{ width: '8px', height: '8px', backgroundColor: '#f43f5e', borderRadius: '50%', animation: 'aura-pulse 1s infinite' }} />
+            <span style={{ ...H, fontWeight: 600, fontSize: '11px', color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {sourceMode === 'file' ? 'Analyzing' : 'Recording'} {recordingSeconds}s / 15s
+            </span>
+          </div>
+        )}
+
+        {!modelLoading && (sourceMode === 'webcam' || uploadedFileUrl) && (
+          <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(12,15,15,0.85)', border: `1px solid ${bodyDetected ? 'rgba(255,225,109,0.3)' : 'rgba(245,158,11,0.3)'}`, padding: '6px 12px', borderRadius: '20px', backdropFilter: 'blur(8px)', zIndex: 10 }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: bodyDetected ? '#ffe16d' : '#f59e0b' }} />
+            <span style={{ ...H, fontWeight: 600, fontSize: '11px', color: '#e2e2e2', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {bodyDetected ? 'Body Detected' : 'Position Body'}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* File controls */}
+      {sourceMode === 'file' && uploadedFileUrl && (
+        <div style={{ margin: '10px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1a1c1c', border: '1px solid #4d4732', padding: '12px 16px', borderRadius: '2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ffe16d', flexShrink: 0 }}>folder_open</span>
+            <span style={{ ...H, fontSize: '12px', color: '#d0c6ab', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadedFileName}</span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <button onClick={() => { const v = videoRef.current; if (!v) return; isPlaying ? v.pause() : v.play().catch(() => {}); }}
+              style={{ padding: '8px', backgroundColor: '#282a2b', border: '1px solid #4d4732', borderRadius: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#e2e2e2' }}>{isPlaying ? 'pause' : 'play_arrow'}</span>
+            </button>
+            <label style={{ padding: '8px 12px', backgroundColor: '#282a2b', border: '1px solid #4d4732', borderRadius: '2px', cursor: 'pointer', ...H, fontSize: '11px', color: '#c9c6c5', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Change <input type="file" accept="video/*" onChange={handleFileUpload} style={{ display: 'none' }} />
             </label>
-          )}
-
-          {/* Initial Loading Overlay */}
-          {modelLoading && (
-            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center gap-4 text-center p-6 z-30">
-              <RefreshCw className="h-10 w-10 text-cyan-400 animate-spin" />
-              <h3 className="font-semibold text-lg text-slate-100 font-orbitron tracking-wider">INITIALIZING SYSTEM</h3>
-              <p className="text-slate-400 text-sm max-w-sm">
-                Downloading and configuring client-side BlazePose CNN model via WebGL...
-              </p>
-            </div>
-          )}
-
-          {/* Camera Access Error Overlay */}
-          {error && !modelLoading && sourceMode === 'webcam' && (
-            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 text-center p-6 z-30">
-              <AlertCircle className="h-12 w-12 text-rose-500" />
-              <h3 className="font-semibold text-lg text-rose-500 font-orbitron tracking-wider">HARDWARE ERROR</h3>
-              <p className="text-slate-300 text-sm max-w-md">{error}</p>
-              <button 
-                onClick={() => startWebcam()}
-                className="mt-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors border border-slate-700 text-sm"
-              >
-                Retry Camera Access
-              </button>
-            </div>
-          )}
-
-          {/* Live Recording Pulse */}
-          {isRecording && (
-            <div className="absolute top-4 left-4 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 px-3 py-1.5 rounded-full z-10">
-              <span className="w-2.5 h-2.5 bg-cyan-500 rounded-full animate-pulse" />
-              <span className="text-xs font-orbitron font-semibold text-cyan-400 tracking-wider">
-                {sourceMode === 'file' ? `ANALYZING VIDEO: ${analysisProgress}%` : `RECORDING ${recordingSeconds}s`}
-              </span>
-            </div>
-          )}
-          
-          {/* High-speed analysis scanner overlay */}
-          {sourceMode === 'file' && isRecording && (
-            <div className="absolute inset-0 bg-slate-950/40 pointer-events-none z-20 flex flex-col justify-end p-6">
-              {/* Scanline element */}
-              <div className="absolute inset-x-0 h-0.5 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)] animate-[scan_1.5s_infinite_ease-in-out]" />
-              
-              {/* Scanner Progress block */}
-              <div className="bg-slate-950/90 backdrop-blur border border-slate-800 p-4 rounded-xl flex flex-col gap-2 shadow-2xl">
-                <div className="flex justify-between text-[10px] font-orbitron font-bold text-slate-300 tracking-wider">
-                  <span>HIGH-SPEED SCANNING:</span>
-                  <span className="text-cyan-400">{analysisProgress}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80">
-                  <div 
-                    className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-100"
-                    style={{ width: `${analysisProgress}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Skeleton Scanning Keyframes */}
-          <style>{`
-            @keyframes scan {
-              0% { top: 0%; opacity: 0.3; }
-              50% { top: 100%; opacity: 1; }
-              100% { top: 0%; opacity: 0.3; }
-            }
-          `}</style>
-          
-          {/* Skeleton Tracking Status */}
-          {!modelLoading && !error && (sourceMode === 'webcam' || uploadedFileUrl) && (
-            <div className="absolute top-4 right-4 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md border border-emerald-500/30 px-3 py-1.5 rounded-full z-10">
-              <span className={`w-2.5 h-2.5 rounded-full ${latestLandmarksRef.current ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-              <span className="text-xs font-orbitron font-semibold text-slate-300 tracking-wider">
-                {latestLandmarksRef.current ? 'BODY DETECTED' : 'POSITION BODY'}
-              </span>
-            </div>
-          )}
+          </div>
         </div>
+      )}
 
-        {/* CONTROLS AREA */}
-        <div className="mt-6 flex flex-col items-center gap-3 w-full max-w-2xl">
-          {sourceMode === 'file' && uploadedFileUrl && (
-            <div className="flex justify-between items-center bg-slate-900/60 border border-slate-800 px-4 py-3 rounded-xl w-full text-sm">
-              <div className="flex items-center gap-2 truncate text-slate-300 font-mono text-xs">
-                <FolderOpen className="h-4 w-4 text-cyan-400 shrink-0" />
-                <span className="truncate">{uploadedFileName}</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={togglePlayback}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border border-slate-700"
-                  title={isPlaying ? "Pause" : "Play"}
-                >
-                  {isPlaying ? <PauseIcon className="h-3.5 w-3.5" /> : <PlayIcon className="h-3.5 w-3.5" />}
-                </button>
-                <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold cursor-pointer border border-slate-700 transition-colors">
-                  Change File
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
+      {/* Live metrics */}
+      <div style={{ margin: '10px 20px 0', backgroundColor: '#1a1c1c', border: '1px solid #4d4732', padding: '16px', borderRadius: '2px' }}>
+        <p style={{ ...H, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#999077', marginBottom: '12px' }}>Live Telemetry</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {[{ label: 'Left Knee', val: liveMetrics.leftKnee }, { label: 'Right Knee', val: liveMetrics.rightKnee }, { label: 'Left Elbow', val: liveMetrics.leftElbow }, { label: 'Right Elbow', val: liveMetrics.rightElbow }].map(({ label, val }) => (
+            <div key={label} style={{ backgroundColor: '#0c0f0f', border: '1px solid #4d4732', padding: '10px', borderRadius: '2px', textAlign: 'center' }}>
+              <p style={{ ...H, fontSize: '10px', color: '#999077', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+              <p style={{ ...S, fontWeight: 700, fontSize: '20px', color: '#ffe16d', marginTop: '2px' }}>{val}°</p>
             </div>
-          )}
-
-          <div className="flex gap-4 w-full justify-center">
-            {!isRecording ? (
-              <button
-                onClick={startRecording}
-                disabled={
-                  modelLoading || 
-                  (sourceMode === 'webcam' && (error || !latestLandmarksRef.current)) ||
-                  (sourceMode === 'file' && !uploadedFileUrl)
-                }
-                className={`flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-orbitron font-bold tracking-wider text-base transition-all duration-300 shadow-lg border w-full sm:w-auto ${
-                  (modelLoading || (sourceMode === 'webcam' && (error || !latestLandmarksRef.current)) || (sourceMode === 'file' && !uploadedFileUrl))
-                    ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
-                    : 'bg-cyan-500 hover:bg-cyan-400 border-cyan-400 text-slate-950 active:scale-95 hover:shadow-cyan-500/20'
-                }`}
-              >
-                <Video className="h-5 w-5" />
-                {sourceMode === 'file' ? 'START VIDEO ANALYSIS' : 'START ANALYSIS RECORDING'}
-              </button>
-            ) : (
-              <button
-                onClick={stopRecording}
-                className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-red-500 hover:bg-red-400 border border-red-400 text-white font-orbitron font-bold tracking-wider text-base transition-all duration-300 active:scale-95 shadow-lg shadow-red-500/20 w-full sm:w-auto"
-              >
-                <VideoOff className="h-5 w-5" />
-                STOP & ANALYZE NOW ({history.length} frames)
-              </button>
-            )}
-          </div>
-          
-          <div className="flex items-start gap-2 bg-slate-900/60 border border-slate-800 p-4 rounded-xl max-w-2xl w-full text-slate-400 text-xs leading-relaxed">
-            <Info className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-slate-200 mb-1">
-                {sourceMode === 'file' ? 'Video Analysis Instructions:' : 'Webcam Instructions:'}
-              </p>
-              <p>
-                {sourceMode === 'file' 
-                  ? 'Upload an athletic video. Click "Start Video Analysis". The engine will automatically play the file, track skeletal lines in real-time, slice tracking coordinates at 5 Hz, and generate your biomechanical audit report when the video ends.'
-                  : 'Stand back so your full body is visible. Click start, execute a joint movement (e.g. Squat or Bicep Curl) as long as needed, and click stop to transmit the tracking telemetry to Gemini.'}
-              </p>
-            </div>
-          </div>
+          ))}
+        </div>
+        <div style={{ marginTop: '8px', backgroundColor: '#0c0f0f', border: `1px solid ${liveMetrics.kneeAsymmetry > 10 ? 'rgba(245,158,11,0.4)' : '#4d4732'}`, padding: '10px', borderRadius: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ ...H, fontSize: '11px', color: '#d0c6ab', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Knee Asymmetry</span>
+          <span style={{ ...S, fontWeight: 700, fontSize: '18px', color: liveMetrics.kneeAsymmetry > 10 ? '#f59e0b' : '#ffe16d' }}>{liveMetrics.kneeAsymmetry}°</span>
         </div>
       </div>
 
-      {/* RIGHT: Live Data & Visual Biomechanics Analytics */}
-      <div className="w-full lg:w-80 flex flex-col gap-6">
-        {/* Real-time Angles Board */}
-        <div className="glassmorphism rounded-2xl p-6 border border-slate-800 flex flex-col gap-4">
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-            <Activity className="h-5 w-5 text-cyan-400 animate-pulse" />
-            <h3 className="font-orbitron font-bold text-slate-100 tracking-wider">LIVE TELEMETRY</h3>
-          </div>
+      {/* CTA */}
+      <div style={{ padding: '12px 20px 0' }}>
+        {!isRecording ? (
+          <button onClick={startRecording} disabled={!canRecord}
+            style={{ width: '100%', padding: '18px', border: 'none', borderRadius: '2px', cursor: canRecord ? 'pointer' : 'not-allowed', backgroundColor: canRecord ? '#ffd700' : '#1e2020', color: canRecord ? '#3a3000' : '#4d4732', ...H, fontWeight: 600, fontSize: '13px', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>videocam</span>
+            {sourceMode === 'file' ? 'Start Video Analysis' : 'Start Analysis Recording'}
+          </button>
+        ) : (
+          <button onClick={stopRecording}
+            style={{ width: '100%', padding: '18px', border: 'none', borderRadius: '2px', cursor: 'pointer', backgroundColor: '#93000a', color: '#ffdad6', ...H, fontWeight: 600, fontSize: '13px', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>stop_circle</span>
+            Stop & Analyze ({history.length} frames)
+          </button>
+        )}
 
-          <div className="flex flex-col gap-4">
-            {/* Knees */}
-            <div>
-              <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Knee Flexion (Hip-Knee-Ankle)</span>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
-                  <div className="text-xs text-slate-500 font-medium">LEFT</div>
-                  <div className="text-xl font-orbitron font-bold text-cyan-400">
-                    {liveMetrics.leftKnee !== null ? `${liveMetrics.leftKnee}°` : 'N/A'}
-                  </div>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
-                  <div className="text-xs text-slate-500 font-medium">RIGHT</div>
-                  <div className="text-xl font-orbitron font-bold text-cyan-400">
-                    {liveMetrics.rightKnee !== null ? `${liveMetrics.rightKnee}°` : 'N/A'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Elbows */}
-            <div>
-              <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Elbow Flexion (Shoulder-Elbow-Wrist)</span>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
-                  <div className="text-xs text-slate-500 font-medium">LEFT</div>
-                  <div className="text-xl font-orbitron font-bold text-emerald-400">
-                    {liveMetrics.leftElbow !== null ? `${liveMetrics.leftElbow}°` : 'N/A'}
-                  </div>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
-                  <div className="text-xs text-slate-500 font-medium">RIGHT</div>
-                  <div className="text-xl font-orbitron font-bold text-emerald-400">
-                    {liveMetrics.rightElbow !== null ? `${liveMetrics.rightElbow}°` : 'N/A'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Hips */}
-            <div>
-              <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Hip Flexion (Shoulder-Hip-Knee)</span>
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
-                  <div className="text-xs text-slate-500 font-medium">LEFT</div>
-                  <div className="text-xl font-orbitron font-bold text-amber-400">
-                    {liveMetrics.leftHip !== null ? `${liveMetrics.leftHip}°` : 'N/A'}
-                  </div>
-                </div>
-                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
-                  <div className="text-xs text-slate-500 font-medium">RIGHT</div>
-                  <div className="text-xl font-orbitron font-bold text-amber-400">
-                    {liveMetrics.rightHip !== null ? `${liveMetrics.rightHip}°` : 'N/A'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Torso Lean */}
-            <div>
-              <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Torso Tilt (vs. Vertical)</span>
-              <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3 flex justify-between items-center">
-                <span className="text-xs text-slate-500 font-medium">Lean Angle:</span>
-                <span className="text-lg font-orbitron font-bold text-cyan-400">
-                  {liveMetrics.torsoTilt !== null ? `${liveMetrics.torsoTilt}°` : 'N/A'}
-                </span>
-              </div>
-            </div>
-
-            {/* Knee Asymmetry */}
-            <div className="border-t border-slate-800/60 pt-3">
-              <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Knee Asymmetry Delta</span>
-              <div className={`bg-slate-950/60 border rounded-lg p-3 flex justify-between items-center ${
-                liveMetrics.kneeAsymmetry !== null && liveMetrics.kneeAsymmetry > 10 ? 'border-amber-500/40 text-amber-400' : 'border-slate-800 text-slate-300'
-              }`}>
-                <span className="text-xs font-semibold">Absolute Difference:</span>
-                <span className="text-lg font-orbitron font-bold">
-                  {liveMetrics.kneeAsymmetry !== null ? `${liveMetrics.kneeAsymmetry}°` : 'N/A'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* System Details Card */}
-        <div className="bg-slate-900/40 rounded-2xl p-5 border border-slate-800/80 text-xs text-slate-400 leading-relaxed">
-          <div className="font-semibold text-slate-300 mb-2 font-orbitron uppercase tracking-wider">PIPELINE METRIC SPEC</div>
-          <ul className="space-y-1.5 list-disc pl-4">
-            <li>Model: BlazePose (Single-Person Topology)</li>
-            <li>Sampling Rate: Exactly 5Hz (200ms)</li>
-            <li>Angles processed: Cosine rule vector dot product</li>
-            <li>Output structure: Dynamic biomechanical array JSON</li>
-          </ul>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', backgroundColor: '#1a1c1c', border: '1px solid #4d4732', padding: '14px', borderRadius: '2px', marginTop: '10px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ffe16d', flexShrink: 0, marginTop: '1px' }}>info</span>
+          <p style={{ ...H, fontSize: '12px', lineHeight: 1.6, color: '#d0c6ab' }}>
+            {sourceMode === 'file'
+              ? 'Upload an athletic video, then tap Start. The engine plays and tracks your skeleton at 5Hz, then generates an audit.'
+              : 'Stand back so your full body is visible. Tap start, perform a movement for 5–15 seconds, then tap stop.'}
+          </p>
         </div>
       </div>
+
+      <style>{`
+        @keyframes aura-spin { to { transform: rotate(360deg); } }
+        @keyframes aura-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+      `}</style>
     </div>
   );
 }

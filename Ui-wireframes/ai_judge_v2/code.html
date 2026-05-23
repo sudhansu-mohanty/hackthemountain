@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AURA | Mastery Audit Results</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&amp;family=Sora:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary": "#313030",
+                    "surface-tint": "#e9c400",
+                    "primary-fixed-dim": "#e9c400",
+                    "on-secondary-fixed": "#1c1b1b",
+                    "surface-container-highest": "#333535",
+                    "primary-fixed": "#ffe16d",
+                    "on-background": "#e2e2e2",
+                    "inverse-surface": "#e2e2e2",
+                    "on-primary-container": "#705e00",
+                    "on-tertiary-container": "#605f5e",
+                    "on-primary-fixed-variant": "#544600",
+                    "tertiary": "#f9f5f5",
+                    "on-error": "#690005",
+                    "inverse-primary": "#705d00",
+                    "error": "#ffb4ab",
+                    "surface-dim": "#121414",
+                    "tertiary-container": "#dcd9d9",
+                    "background": "#121414",
+                    "surface-container-high": "#282a2b",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "surface-container": "#1e2020",
+                    "on-tertiary": "#313030",
+                    "surface-container-lowest": "#0c0f0f",
+                    "error-container": "#93000a",
+                    "surface-container-low": "#1a1c1c",
+                    "on-primary-fixed": "#221b00",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "secondary-container": "#4a4949",
+                    "inverse-on-surface": "#2f3131",
+                    "on-primary": "#3a3000",
+                    "surface": "#121414",
+                    "on-surface": "#e2e2e2",
+                    "on-surface-variant": "#d0c6ab",
+                    "secondary-fixed-dim": "#c9c6c5",
+                    "tertiary-fixed": "#e5e2e1",
+                    "surface-bright": "#38393a",
+                    "secondary-fixed": "#e5e2e1",
+                    "outline": "#999077",
+                    "on-error-container": "#ffdad6",
+                    "on-secondary-fixed-variant": "#474646",
+                    "on-secondary-container": "#bab8b7",
+                    "primary": "#fff6df",
+                    "outline-variant": "#4d4732",
+                    "secondary": "#c9c6c5",
+                    "surface-variant": "#333535",
+                    "primary-container": "#ffd700"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-mobile": "20px",
+                    "gutter": "24px",
+                    "xs": "4px",
+                    "unit": "4px",
+                    "lg": "32px",
+                    "md": "16px",
+                    "sm": "8px",
+                    "margin-desktop": "80px",
+                    "xl": "64px",
+                    "xxl": "128px"
+            },
+            "fontFamily": {
+                    "body-md": ["Hanken Grotesk"],
+                    "display-lg-mobile": ["Sora"],
+                    "headline-xl": ["Sora"],
+                    "label-sm": ["Hanken Grotesk"],
+                    "label-md": ["Hanken Grotesk"],
+                    "headline-xl-mobile": ["Sora"],
+                    "display-lg": ["Sora"],
+                    "headline-md": ["Sora"],
+                    "body-lg": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "display-lg-mobile": ["40px", {"lineHeight": "1.1", "letterSpacing": "-0.03em", "fontWeight": "700"}],
+                    "headline-xl": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.1em", "fontWeight": "600"}],
+                    "headline-xl-mobile": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "display-lg": ["64px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+        .circular-gauge-container {
+            position: relative;
+            width: 240px;
+            height: 240px;
+        }
+        .circular-gauge-svg {
+            transform: rotate(-90deg);
+        }
+        .circular-gauge-bg {
+            fill: none;
+            stroke: #1e2020;
+            stroke-width: 8;
+        }
+        .circular-gauge-progress {
+            fill: none;
+            stroke: url(#goldGradient);
+            stroke-width: 8;
+            stroke-linecap: square;
+            stroke-dasharray: 628;
+            stroke-dashoffset: calc(628 - (628 * 82) / 100);
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .noir-glow {
+            box-shadow: 0 0 40px rgba(233, 196, 0, 0.05);
+        }
+        body {
+            background-color: #0c0f0f;
+            overflow-x: hidden;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Top App Bar (Shared Component) -->
+<header class="bg-background dark:bg-background border-b border-outline-variant dark:border-outline-variant docked full-width top-0 z-50 fixed flex justify-between items-center w-full px-margin-mobile py-md">
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+</div>
+<h1 class="font-display-lg-mobile text-display-lg-mobile tracking-[0.2em] text-primary-fixed dark:text-primary-fixed">AURA</h1>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-[100px] pb-32 px-margin-mobile max-w-2xl mx-auto min-h-screen">
+<!-- Mastery Gauge Section -->
+<section class="flex flex-col items-center justify-center py-xl">
+<div class="circular-gauge-container mb-md">
+<svg class="circular-gauge-svg w-full h-full" viewbox="0 0 210 210">
+<defs>
+<lineargradient id="goldGradient" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#ffe16d;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#e9c400;stop-opacity:1"></stop>
+</lineargradient>
+</defs>
+<circle class="circular-gauge-bg" cx="105" cy="105" r="100"></circle>
+<circle class="circular-gauge-progress" cx="105" cy="105" r="100"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-display-lg-mobile text-display-lg-mobile text-primary-fixed leading-none">82</span>
+<span class="font-label-md text-label-md text-on-surface-variant tracking-[0.3em] uppercase mt-xs">Overall</span>
+</div>
+</div>
+<div class="text-center mt-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Mastery Audit Complete</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs opacity-60">Performance ID: #AX-9921</p>
+</div>
+</section>
+<!-- Insights Grid -->
+<div class="grid grid-cols-1 gap-gutter">
+<!-- Stage Posture Card -->
+<div class="bg-surface-container-low border border-outline-variant p-lg rounded-none noir-glow relative overflow-hidden">
+<div class="absolute top-0 right-0 p-md opacity-10">
+<span class="material-symbols-outlined text-[64px]" data-icon="accessibility_new">accessibility_new</span>
+</div>
+<div class="flex justify-between items-start mb-xl">
+<div>
+<span class="font-label-sm text-label-sm text-primary-fixed uppercase tracking-widest block mb-xs">Metrics</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Stage Posture</h3>
+</div>
+<div class="text-right">
+<span class="font-display-lg-mobile text-[32px] text-primary-fixed block leading-none">92%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Precision</span>
+</div>
+</div>
+<div class="space-y-md">
+<div class="h-[1px] bg-outline-variant w-full"></div>
+<p class="font-body-md text-body-md text-on-surface-variant">Exceptional alignment. Your spinal verticality remains consistent throughout movement transitions, projecting authority and presence.</p>
+</div>
+</div>
+<!-- Vocal Resonance Card -->
+<div class="bg-surface-container-low border border-outline-variant p-lg rounded-none noir-glow relative overflow-hidden">
+<div class="absolute top-0 right-0 p-md opacity-10">
+<span class="material-symbols-outlined text-[64px]" data-icon="graphic_eq">graphic_eq</span>
+</div>
+<div class="flex justify-between items-start mb-xl">
+<div>
+<span class="font-label-sm text-label-sm text-primary-fixed uppercase tracking-widest block mb-xs">Acoustics</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Vocal Resonance</h3>
+</div>
+<div class="text-right">
+<span class="font-display-lg-mobile text-[32px] text-on-surface block leading-none">74%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Depth</span>
+</div>
+</div>
+<div class="space-y-md">
+<div class="h-[1px] bg-outline-variant w-full"></div>
+<p class="font-body-md text-body-md text-on-surface-variant">Minor breathiness detected in mid-sentence pauses. Focus on diaphragmatic support to maintain tonal weight during extended delivery.</p>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="mt-xxl mb-lg flex justify-center">
+<button class="bg-primary-container text-on-primary-container px-xl py-md font-label-md text-label-md uppercase tracking-[0.2em] rounded-none hover:opacity-90 transition-all active:scale-95 flex items-center gap-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="replay">replay</span>
+                Re-record Audit
+            </button>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Shared Component) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-surface-container-lowest/80 backdrop-blur-md border-t border-outline-variant dark:border-outline-variant flex justify-around items-center px-xl pb-lg pt-md">
+<!-- Analytics -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary pt-2 hover:text-primary-fixed-dim transition-colors active:scale-110 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+</a>
+<!-- Judge (ACTIVE) -->
+<a class="flex flex-col items-center justify-center text-primary-fixed dark:text-primary-fixed border-t-2 border-primary-fixed -mt-0.5 pt-2 active:scale-110 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+</a>
+<!-- Person -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary pt-2 hover:text-primary-fixed-dim transition-colors active:scale-110 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction: Smooth gauge entry
+        window.addEventListener('load', () => {
+            const progressCircle = document.querySelector('.circular-gauge-progress');
+            // Re-trigger dashoffset for animation effect
+            progressCircle.style.strokeDashoffset = '628';
+            setTimeout(() => {
+                progressCircle.style.strokeDashoffset = (628 - (628 * 82) / 100).toString();
+            }, 300);
+        });
+
+        // Simple parallax effect for cards on hover
+        document.querySelectorAll('.bg-surface-container-low').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+                card.style.borderColor = 'rgba(255, 225, 109, 0.3)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.borderColor = '';
+            });
+        });
+    </script>
+</body></html>

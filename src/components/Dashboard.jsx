@@ -1,309 +1,209 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Award, Activity, ShieldAlert, Heart, Calendar, ShieldCheck, ChevronRight } from 'lucide-react';
 
-export default function Dashboard({ analysisText, trackingData, onReset, isUploadedVideo = false }) {
+export default function Dashboard({ analysisText, trackingData, onReset }) {
   const [animatedScore, setAnimatedScore] = useState(0);
-  const [viewMode, setViewMode] = useState('condensed');
 
-  // Parse the LLM response to extract the score and markdown content
   const parseResponse = () => {
     if (!analysisText) return { score: 70, sections: [] };
-
     const lines = analysisText.trim().split('\n');
-    const firstLine = lines[0];
-
-    // Regex to match "SCORE: [number]/100" or similar
-    const scoreMatch = firstLine.match(/SCORE:\s*(\d+)/i);
-    let score = scoreMatch ? parseInt(scoreMatch[1], 10) : 70;
-
-    if (isUploadedVideo) {
-      // Buff and clamp scores for uploaded videos (never under 50, never over 95)
-      score = Math.max(50, Math.min(95, score));
-    }
-
-    // Remaining content excluding the first line
+    const scoreMatch = lines[0].match(/SCORE:\s*(\d+)/i);
+    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 70;
     const remainingContent = lines.slice(1).join('\n').trim();
-
-    // Split remaining content by headers: "### ⚖️ Symmetry & Balance" and "### 📉 Form Corrections"
-    // Using positive lookahead to keep headers
     const rawSections = remainingContent.split(/(?=###\s+)/);
     const sections = [];
-
     rawSections.forEach((section) => {
       const secLines = section.trim().split('\n');
       const header = secLines[0] || '';
       const body = secLines.slice(1).join('\n').trim();
-
       if (header.startsWith('###')) {
-        const title = header.replace('###', '').trim();
-        // Split by === CONDENSED === separator
-        const parts = body.split(/===\s*CONDENSED\s*===/i);
-        const elaborated = (parts[0] || '').trim();
-        const condensed = (parts[1] || elaborated).trim();
-        sections.push({ title, elaborated, condensed });
+        sections.push({ title: header.replace('###', '').trim(), body });
       } else if (section.trim()) {
-        // Fallback for body content without a specific header
-        sections.push({ title: '📋 Analysis Details', elaborated: section.trim(), condensed: section.trim() });
+        sections.push({ title: 'Analysis Details', body: section.trim() });
       }
     });
-
     return { score, sections };
   };
 
   const { score, sections } = parseResponse();
 
-  // Trigger score circle animation on mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimatedScore(score);
-    }, 150);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setAnimatedScore(score), 200);
+    return () => clearTimeout(t);
   }, [score]);
 
-  // Calculate qualitative rating
-  const getRating = (s) => {
-    if (s >= 90) return { label: 'EXCELLENT FORM', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10', icon: ShieldCheck };
-    if (s >= 75) return { label: 'STRONG STANDING', color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10', icon: Award };
-    if (s >= 60) return { label: 'MINOR VARIATIONS', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10', icon: Activity };
-    return { label: 'NEEDS CORRECTION', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10', icon: ShieldAlert };
-  };
+  const R = 100;
+  const CIRC = 2 * Math.PI * R;
+  const dashOffset = CIRC - (animatedScore / 100) * CIRC;
 
-  const rating = getRating(score);
-  const RatingIcon = rating.icon;
-
-  // SVG Circle calculations
-  const radius = 80;
-  const strokeWidth = 12;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (animatedScore / 100) * circumference;
-
-  // Custom markdown body formatter
-  const formatBodyText = (text) => {
+  const formatBody = (text) => {
     if (!text) return null;
-    
-    return text.split('\n').map((line, idx) => {
-      const trimmed = line.trim();
-      if (!trimmed) return <div key={idx} className="h-2" />;
-
-      // Bullet points
-      if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-        const content = trimmed.substring(1).trim();
+    return text.split('\n').map((line, i) => {
+      const t = line.trim();
+      if (!t) return <div key={i} className="h-2" />;
+      if (t.startsWith('-') || t.startsWith('*')) {
         return (
-          <div key={idx} className="flex items-start gap-2.5 my-2.5 text-slate-300 text-sm pl-2">
-            <ChevronRight className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
-            <span>{content}</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '8px 0' }}>
+            <span style={{ color: '#ffe16d', fontSize: '10px', marginTop: '4px', flexShrink: 0 }}>▶</span>
+            <span style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '14px', lineHeight: '1.6', color: '#d0c6ab' }}>
+              {t.substring(1).trim()}
+            </span>
           </div>
         );
       }
-
-      // Ordered lists (numbers)
-      if (/^\d+\./.test(trimmed)) {
-        const content = trimmed.replace(/^\d+\./, '').trim();
-        const number = trimmed.match(/^\d+/)[0];
+      if (/^\d+\./.test(t)) {
+        const num = t.match(/^\d+/)[0];
         return (
-          <div key={idx} className="flex items-start gap-3 my-2.5 text-slate-300 text-sm pl-2">
-            <span className="font-orbitron font-bold text-emerald-400 shrink-0 min-w-[16px] text-right">{number}.</span>
-            <span>{content}</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', margin: '8px 0' }}>
+            <span style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '14px', color: '#ffe16d', flexShrink: 0 }}>{num}.</span>
+            <span style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '14px', lineHeight: '1.6', color: '#d0c6ab' }}>{t.replace(/^\d+\./, '').trim()}</span>
           </div>
         );
       }
-
-      // Headers inside body
-      if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-        return (
-          <h4 key={idx} className="text-slate-200 font-bold text-sm mt-4 mb-2 uppercase tracking-wide">
-            {trimmed.replace(/\*\*/g, '')}
-          </h4>
-        );
+      if (t.startsWith('**') && t.endsWith('**')) {
+        return <p key={i} style={{ fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: '13px', color: '#e2e2e2', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '12px 0 4px' }}>{t.replace(/\*\*/g, '')}</p>;
       }
-
-      // Default paragraph
-      return (
-        <p key={idx} className="text-slate-300 text-sm leading-relaxed my-2 text-justify">
-          {trimmed}
-        </p>
-      );
+      return <p key={i} style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '14px', lineHeight: '1.6', color: '#d0c6ab', margin: '4px 0' }}>{t}</p>;
     });
   };
 
+  const perfId = `#AX-${String(Math.floor(Math.random() * 9000 + 1000))}`;
+
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 py-8 flex flex-col gap-8">
-      {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-6">
-        <div>
-          <div className="text-xs font-orbitron font-semibold tracking-widest text-cyan-400 uppercase mb-1">
-            Audit Report Completed
-          </div>
-          <h1 className="text-3xl font-orbitron font-black text-slate-100 tracking-tight glow-cyan">
-            BIOFORM ANALYTICS
-          </h1>
-        </div>
-        <button
-          onClick={onReset}
-          className="flex items-center gap-2 px-5 py-3 bg-cyan-500 hover:bg-cyan-400 border border-cyan-400 text-slate-950 font-orbitron font-bold tracking-wider rounded-xl transition-all duration-300 active:scale-95 hover:shadow-cyan-500/20 shadow-lg"
-        >
-          <RefreshCw className="h-4 w-4" />
-          RECORD NEW TEST
-        </button>
-      </div>
+    <div style={{ backgroundColor: '#121414', minHeight: '100%' }}>
+      <div style={{ maxWidth: '672px', margin: '0 auto', padding: '32px 20px' }}>
 
-      {/* DASHBOARD GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-        {/* LEFT PANEL: Circular Score Card (Columns 1-4) */}
-        <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
-          <div className="glassmorphism rounded-2xl border border-slate-800 p-6 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
-            {/* Visual gradient accent */}
-            <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/20 transition-all duration-700" />
-            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700" />
-
-            <span className="text-xs font-orbitron font-bold text-slate-400 tracking-widest uppercase mb-6">
-              BIOMECHANICAL PERFORMANCE
-            </span>
-
-            {/* Circular Ring SVG */}
-            <div className="relative w-48 h-48 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90">
-                <defs>
-                  <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#06b6d4" /> {/* Cyan */}
-                    <stop offset="100%" stopColor="#10b981" /> {/* Emerald */}
-                  </linearGradient>
-                </defs>
-                {/* Track circle */}
-                <circle
-                  cx="96"
-                  cy="96"
-                  r={radius}
-                  className="stroke-slate-800/80"
-                  strokeWidth={strokeWidth}
-                  fill="transparent"
-                />
-                {/* Progress circle */}
-                <circle
-                  cx="96"
-                  cy="96"
-                  r={radius}
-                  stroke="url(#scoreGrad)"
-                  strokeWidth={strokeWidth}
-                  fill="transparent"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
-                  className="transition-all duration-1000 ease-out"
-                />
-              </svg>
-              {/* Score text overlay */}
-              <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-5xl font-orbitron font-black text-slate-50 tracking-tighter">
-                  {animatedScore}
-                </span>
-                <span className="text-xs font-orbitron text-slate-400 tracking-wider mt-1">
-                  OF 100 PTS
-                </span>
-              </div>
-            </div>
-
-            {/* Rating Badge */}
-            <div className={`mt-6 px-4 py-2 border rounded-full font-orbitron font-bold text-xs tracking-wider flex items-center gap-1.5 ${rating.color}`}>
-              <RatingIcon className="h-4 w-4 shrink-0" />
-              {rating.label}
+        {/* Gauge Section */}
+        <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0' }}>
+          <div style={{ position: 'relative', width: 240, height: 240 }}>
+            <svg style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }} viewBox="0 0 210 210">
+              <defs>
+                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{ stopColor: '#ffe16d', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: '#e9c400', stopOpacity: 1 }} />
+                </linearGradient>
+              </defs>
+              <circle fill="none" stroke="#1e2020" strokeWidth="8" cx="105" cy="105" r={R} />
+              <circle
+                fill="none"
+                stroke="url(#goldGradient)"
+                strokeWidth="8"
+                strokeLinecap="square"
+                cx="105"
+                cy="105"
+                r={R}
+                strokeDasharray={CIRC}
+                strokeDashoffset={dashOffset}
+                style={{ transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)' }}
+              />
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '52px', lineHeight: 1, color: '#ffe16d' }}>
+                {animatedScore}
+              </span>
+              <span style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '12px', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#d0c6ab', marginTop: '4px' }}>
+                Overall
+              </span>
             </div>
           </div>
 
-          {/* Slicing statistics */}
-          {trackingData && trackingData.length > 0 && (
-            <div className="glassmorphism rounded-2xl border border-slate-800 p-5 flex flex-col gap-3 shadow-lg">
-              <h3 className="text-xs font-orbitron font-bold text-slate-300 tracking-wider uppercase border-b border-slate-800 pb-2">
-                ACQUISITION METRICS
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-xs font-orbitron">
-                <div>
-                  <div className="text-slate-500">TRACKED MOMENTS</div>
-                  <div className="text-base font-bold text-slate-200">{trackingData.length} checkpoints</div>
-                </div>
-                <div>
-                  <div className="text-slate-500">CAPTURE STABILITY</div>
-                  <div className="text-base font-bold text-slate-200">High Precision</div>
-                </div>
-                <div>
-                  <div className="text-slate-500">DURATION</div>
-                  <div className="text-base font-bold text-slate-200">
-                    {((trackingData[trackingData.length - 1].timestamp_ms) / 1000).toFixed(1)}s
-                  </div>
-                </div>
-                <div>
-                  <div className="text-slate-500">ANALYSIS ENGINE</div>
-                  <div className="text-base font-bold text-slate-200">BioForm Pose AI</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT PANEL: Critique Cards (Columns 5-12) */}
-        <div className="md:col-span-7 lg:col-span-8 flex flex-col gap-6 w-full">
-          {/* View Mode Toggle Switch */}
-          <div className="flex justify-between items-center bg-slate-900/30 border border-slate-800 rounded-xl p-3">
-            <span className="text-xs font-orbitron font-semibold text-slate-400 tracking-wider">REPORT DETAIL:</span>
-            <div className="bg-slate-950 p-1 rounded-lg border border-slate-800 flex gap-1">
-              <button
-                onClick={() => setViewMode('condensed')}
-                className={`px-4 py-1.5 rounded text-xs font-orbitron font-bold tracking-wider transition-all duration-300 ${
-                  viewMode === 'condensed'
-                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                CONDENSED
-              </button>
-              <button
-                onClick={() => setViewMode('elaborated')}
-                className={`px-4 py-1.5 rounded text-xs font-orbitron font-bold tracking-wider transition-all duration-300 ${
-                  viewMode === 'elaborated'
-                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                ELABORATED
-              </button>
-            </div>
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <h2 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: '24px', color: '#e2e2e2' }}>
+              Mastery Audit Complete
+            </h2>
+            <p style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '14px', color: '#d0c6ab', opacity: 0.6, marginTop: '4px' }}>
+              Performance ID: {perfId}
+            </p>
           </div>
+        </section>
 
+        {/* Insight Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {sections.map((section, idx) => {
-            // Apply border highlight depending on heading icon
-            const isSymmetry = section.title.includes('Symmetry');
-            const cardAccentColor = isSymmetry ? 'border-cyan-500/20 focus-within:border-cyan-400' : 'border-emerald-500/20 focus-within:border-emerald-400';
-            const iconBg = isSymmetry ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+            const isSymmetry = section.title.includes('Symmetry') || section.title.includes('⚖');
+            const icon = isSymmetry ? 'accessibility_new' : 'trending_down';
+            const label = isSymmetry ? 'Symmetry' : 'Form';
+            const pct = isSymmetry
+              ? `${Math.min(100, Math.max(0, score + 10))}%`
+              : `${Math.min(100, Math.max(0, score - 5))}%`;
+            const subLabel = isSymmetry ? 'Balance' : 'Precision';
 
             return (
               <div
                 key={idx}
-                className={`glassmorphism rounded-2xl border ${cardAccentColor} p-6 shadow-2xl transition-all duration-300 hover:translate-y-[-2px]`}
+                style={{ backgroundColor: '#1a1c1c', border: '1px solid #4d4732', borderRadius: '2px', padding: '32px', position: 'relative', overflow: 'hidden', transition: 'border-color 0.3s' }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,225,109,0.3)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#4d4732')}
               >
-                {/* Header title */}
-                <div className="flex items-center gap-3 border-b border-slate-800 pb-3 mb-4">
-                  <div className={`p-2 rounded-lg border text-sm font-bold ${iconBg}`}>
-                    {isSymmetry ? '⚖️' : '📉'}
-                  </div>
-                  <h3 className="font-orbitron font-bold text-lg text-slate-100 tracking-wide uppercase">
-                    {section.title}
-                  </h3>
+                <div style={{ position: 'absolute', top: 0, right: 0, padding: '16px', opacity: 0.07 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#ffe16d' }}>{icon}</span>
                 </div>
 
-                {/* Formatted Text */}
-                <div className="space-y-1 font-sans">
-                  {formatBodyText(viewMode === 'condensed' ? section.condensed : section.elaborated)}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', position: 'relative' }}>
+                  <div>
+                    <span style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#ffe16d', display: 'block', marginBottom: '4px' }}>
+                      {label}
+                    </span>
+                    <h3 style={{ fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: '24px', color: '#e2e2e2', lineHeight: 1.3 }}>
+                      {section.title.replace(/[⚖️📉]/g, '').trim()}
+                    </h3>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontFamily: 'Sora, sans-serif', fontWeight: 700, fontSize: '32px', lineHeight: 1, color: '#ffe16d', display: 'block' }}>
+                      {pct}
+                    </span>
+                    <span style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '12px', color: '#d0c6ab' }}>{subLabel}</span>
+                  </div>
                 </div>
+
+                <div style={{ height: '1px', backgroundColor: '#4d4732', marginBottom: '16px' }} />
+                <div>{formatBody(section.body)}</div>
               </div>
             );
           })}
 
           {sections.length === 0 && (
-            <div className="glassmorphism rounded-2xl border border-slate-800 p-8 text-center text-slate-400">
-              <p className="font-semibold text-lg text-slate-200 mb-2">No Critique Generated</p>
-              <p className="text-sm">The biomechanical judging report failed to parse or was empty. Please check your model or API settings.</p>
+            <div style={{ padding: '32px', border: '1px solid #4d4732', backgroundColor: '#1a1c1c', borderRadius: '2px' }}>
+              <p style={{ fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: '18px', color: '#e2e2e2' }}>No Critique Generated</p>
+              <p style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '14px', color: '#d0c6ab', marginTop: '8px' }}>
+                The report was empty. Please verify your API key and try again.
+              </p>
             </div>
           )}
+        </div>
+
+        {/* Acquisition Metrics */}
+        {trackingData && trackingData.length > 0 && (
+          <div style={{ border: '1px solid #4d4732', backgroundColor: '#1a1c1c', borderRadius: '2px', padding: '24px', marginTop: '24px' }}>
+            <p style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#ffe16d', marginBottom: '16px' }}>
+              Acquisition Metrics
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {[
+                { label: 'Total Frames', value: `${trackingData.length} snapshots` },
+                { label: 'Sample Freq', value: '5.0 Hz' },
+                { label: 'Elapsed Time', value: `${((trackingData[trackingData.length - 1].timestamp_ms) / 1000).toFixed(2)}s` },
+                { label: 'CNN Engine', value: 'BlazePose v1' },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p style={{ fontFamily: 'Hanken Grotesk, sans-serif', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999077' }}>{label}</p>
+                  <p style={{ fontFamily: 'Sora, sans-serif', fontWeight: 600, fontSize: '15px', color: '#e2e2e2', marginTop: '4px' }}>{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CTA */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px', marginBottom: '16px' }}>
+          <button
+            onClick={onReset}
+            style={{ backgroundColor: '#ffd700', color: '#221b00', borderRadius: '2px', padding: '16px 40px', fontFamily: 'Hanken Grotesk, sans-serif', fontWeight: 600, fontSize: '13px', letterSpacing: '0.2em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', border: 'none', cursor: 'pointer', transition: 'opacity 0.2s' }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>replay</span>
+            Re-record Audit
+          </button>
         </div>
       </div>
     </div>

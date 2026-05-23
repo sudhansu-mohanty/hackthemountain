@@ -2,48 +2,118 @@
 
 @layer base {
   body {
-    background-color: #0f172a;
-    color: #f8fafc;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: #121414;
+    color: #e2e2e2;
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
   }
 }
 
-/* Custom glow animations and utilities */
-.glow-cyan {
-  text-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+/* AURA Noir design tokens as CSS custom properties */
+:root {
+  --background: #121414;
+  --surface-lowest: #0c0f0f;
+  --surface-low: #1a1c1c;
+  --surface: #1e2020;
+  --surface-high: #282a2b;
+  --surface-highest: #333535;
+  --on-surface: #e2e2e2;
+  --on-surface-variant: #d0c6ab;
+  --outline: #999077;
+  --outline-variant: #4d4732;
+  --primary-gold: #ffe16d;
+  --primary-gold-dim: #e9c400;
+  --primary-container: #ffd700;
+  --secondary: #c9c6c5;
 }
 
-.glow-emerald {
-  text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+/* Typography helpers */
+.font-sora { font-family: 'Sora', sans-serif; }
+.font-hanken { font-family: 'Hanken Grotesk', sans-serif; }
+
+/* AURA specific utilities */
+.noir-gradient {
+  background: linear-gradient(180deg, rgba(12,15,15,0) 0%, rgba(12,15,15,0.85) 65%, #0c0f0f 100%);
 }
 
-.glassmorphism {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.noir-gradient-dark {
+  background: linear-gradient(180deg, rgba(18,20,20,0) 0%, rgba(18,20,20,0.95) 100%);
 }
 
-.glassmorphism-glow {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(6, 182, 212, 0.2);
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+.gold-glow {
+  box-shadow: 0 0 20px rgba(233, 196, 0, 0.15);
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.gold-glow-sm {
+  box-shadow: 0 0 12px rgba(233, 196, 0, 0.08);
 }
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+
+.performance-bar {
+  position: relative;
+  overflow: hidden;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.5);
-  border-radius: 3px;
+.performance-bar::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 16px;
+  background: rgba(255,255,255,0.2);
+  filter: blur(4px);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.8);
+
+/* Circular gauge */
+.circular-gauge-svg {
+  transform: rotate(-90deg);
+}
+.circular-gauge-bg {
+  fill: none;
+  stroke: #1e2020;
+  stroke-width: 8;
+}
+.circular-gauge-progress {
+  fill: none;
+  stroke: url(#goldGradient);
+  stroke-width: 8;
+  stroke-linecap: square;
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Card hover border */
+.aura-card {
+  border: 1px solid #4d4732;
+  background: #1a1c1c;
+  transition: border-color 0.3s;
+}
+.aura-card:hover {
+  border-color: rgba(255,225,109,0.3);
+}
+
+/* Bottom nav safe area */
+.bottom-nav-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0c0f0f; }
+::-webkit-scrollbar-thumb { background: #4d4732; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #999077; }
+
+/* Processing animation */
+@keyframes gauge-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.shimmer {
+  animation: shimmer 2s infinite;
 }

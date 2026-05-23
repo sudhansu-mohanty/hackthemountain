@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&amp;family=Hanken+Grotesk:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0c0f0f;
+            color: #e2e2e2;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+        .noir-gradient {
+            background: linear-gradient(180deg, rgba(12, 15, 15, 0) 0%, rgba(12, 15, 15, 0.9) 70%, #0c0f0f 100%);
+        }
+        .performance-glow {
+            box-shadow: 0 0 20px rgba(233, 196, 0, 0.1);
+        }
+        .mask-image-bento {
+            mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary": "#313030",
+                      "surface-tint": "#e9c400",
+                      "primary-fixed-dim": "#e9c400",
+                      "on-secondary-fixed": "#1c1b1b",
+                      "surface-container-highest": "#333535",
+                      "primary-fixed": "#ffe16d",
+                      "on-background": "#e2e2e2",
+                      "inverse-surface": "#e2e2e2",
+                      "on-primary-container": "#705e00",
+                      "on-tertiary-container": "#605f5e",
+                      "on-primary-fixed-variant": "#544600",
+                      "tertiary": "#f9f5f5",
+                      "on-error": "#690005",
+                      "inverse-primary": "#705d00",
+                      "error": "#ffb4ab",
+                      "surface-dim": "#121414",
+                      "tertiary-container": "#dcd9d9",
+                      "background": "#121414",
+                      "surface-container-high": "#282a2b",
+                      "on-tertiary-fixed-variant": "#474746",
+                      "on-tertiary-fixed": "#1c1b1b",
+                      "surface-container": "#1e2020",
+                      "on-tertiary": "#313030",
+                      "surface-container-lowest": "#0c0f0f",
+                      "error-container": "#93000a",
+                      "surface-container-low": "#1a1c1c",
+                      "on-primary-fixed": "#221b00",
+                      "tertiary-fixed-dim": "#c8c6c5",
+                      "secondary-container": "#4a4949",
+                      "inverse-on-surface": "#2f3131",
+                      "on-primary": "#3a3000",
+                      "surface": "#121414",
+                      "on-surface": "#e2e2e2",
+                      "on-surface-variant": "#d0c6ab",
+                      "secondary-fixed-dim": "#c9c6c5",
+                      "tertiary-fixed": "#e5e2e1",
+                      "surface-bright": "#38393a",
+                      "secondary-fixed": "#e5e2e1",
+                      "outline": "#999077",
+                      "on-error-container": "#ffdad6",
+                      "on-secondary-fixed-variant": "#474646",
+                      "on-secondary-container": "#bab8b7",
+                      "primary": "#fff6df",
+                      "outline-variant": "#4d4732",
+                      "secondary": "#c9c6c5",
+                      "surface-variant": "#333535",
+                      "primary-container": "#ffd700"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "gutter": "24px",
+                      "xs": "4px",
+                      "unit": "4px",
+                      "lg": "32px",
+                      "md": "16px",
+                      "sm": "8px",
+                      "margin-desktop": "80px",
+                      "xl": "64px",
+                      "xxl": "128px"
+              },
+              "fontFamily": {
+                      "body-md": ["Hanken Grotesk"],
+                      "display-lg-mobile": ["Sora"],
+                      "headline-xl": ["Sora"],
+                      "label-sm": ["Hanken Grotesk"],
+                      "label-md": ["Hanken Grotesk"],
+                      "headline-xl-mobile": ["Sora"],
+                      "display-lg": ["Sora"],
+                      "headline-md": ["Sora"],
+                      "body-lg": ["Hanken Grotesk"]
+              },
+              "fontSize": {
+                      "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "display-lg-mobile": ["40px", {"lineHeight": "1.1", "letterSpacing": "-0.03em", "fontWeight": "700"}],
+                      "headline-xl": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "label-md": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.1em", "fontWeight": "600"}],
+                      "headline-xl-mobile": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "display-lg": ["64px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-lowest">
+<!-- Top App Bar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant/30 flex justify-between items-center px-margin-mobile py-md">
+<button class="text-on-surface hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-display-lg-mobile text-[24px] tracking-[0.2em] text-primary-fixed font-bold">AURA</h1>
+<button class="text-on-surface hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<main class="pt-[72px] pb-xxl">
+<!-- Hero Section -->
+<section class="relative h-[751px] w-full flex flex-col justify-end px-margin-mobile overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img alt="Performance Art" class="w-full h-full object-cover grayscale brightness-50 contrast-125" data-alt="A cinematic low-angle photograph of a solo performance artist captured mid-movement on a dark, minimalist stage. Harsh spotlighting from above creates sharp highlights on their silhouette while the background dissolves into deep charcoal shadows. The atmosphere is prestigious and intense, echoing a luxury Noir aesthetic with high-contrast lighting and a sense of focused power. The color palette is monochromatic with extremely subtle warm gold undertones in the highlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCf4Oum-QQMMcISOHGqeUqKq6t1r_uTGK8vvafkjIZ4AYNlEyy88a_-udoB6IDogAcmYJyjJo98nZR6_ci6rJcyL_Nmr9rfS8YKRzrwldc0HDDKdju1cRE27E3usO9OK9xkkacZtpkpP4UOWI6hNHK2r5mDQAvf7d9B_CeiinG1-pnL1cBbJFqjMO2tAf1i3XpIaGHRLhlv2NyOODQiRX7yCWUzDwdh0tFjlLiX1NSSgrXrw8k1b6DBgeUYA4BdDLKVuAd9fW_8BeN7"/>
+<div class="absolute inset-0 noir-gradient"></div>
+</div>
+<div class="relative z-10 mb-xl max-w-xl">
+<h2 class="font-display-lg-mobile text-display-lg-mobile text-primary mb-md">Your Stage, Your Director.</h2>
+<p class="font-body-md text-on-surface-variant opacity-80 mb-lg">Precision analytics meets cinematic storytelling. Capture your mastery with the world's most advanced performance engine.</p>
+<div class="flex flex-col gap-sm">
+<button class="w-full bg-primary-container text-on-primary py-md font-label-md uppercase tracking-widest rounded-DEFAULT hover:brightness-110 active:scale-[0.98] transition-all">
+                        LIVE PERFORMANCE RECORD
+                    </button>
+<button class="w-full border border-on-surface/20 text-on-surface py-md font-label-md uppercase tracking-widest rounded-DEFAULT hover:bg-white/5 active:scale-[0.98] transition-all">
+                        UPLOAD EXISTING VIDEO
+                    </button>
+</div>
+</div>
+</section>
+<!-- Studio Precision -->
+<section class="mt-xxl px-margin-mobile">
+<div class="flex items-center gap-md mb-xl">
+<div class="h-[1px] flex-grow bg-outline-variant/30"></div>
+<h3 class="font-headline-md text-primary-fixed uppercase tracking-[0.1em]">Studio Precision</h3>
+<div class="h-[1px] flex-grow bg-outline-variant/30"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Card 1 -->
+<div class="bg-surface-container-low border border-outline-variant/20 p-lg relative overflow-hidden group">
+<div class="relative z-10">
+<span class="material-symbols-outlined text-primary-fixed mb-md">analytics</span>
+<h4 class="font-headline-md text-on-surface mb-sm">Biometric Analysis</h4>
+<p class="font-body-md text-on-surface-variant mb-md">Real-time posture, velocity, and alignment tracking via neural mapping.</p>
+<button class="font-label-sm uppercase text-primary-fixed tracking-widest flex items-center gap-xs group-hover:gap-sm transition-all">
+                            View Engine <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="absolute -right-8 -bottom-8 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-[120px]">flare</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-low border border-outline-variant/20 p-lg relative overflow-hidden group">
+<div class="relative z-10">
+<span class="material-symbols-outlined text-primary-fixed mb-md">movie</span>
+<h4 class="font-headline-md text-on-surface mb-sm">Cinematic Feedback</h4>
+<p class="font-body-md text-on-surface-variant mb-md">Dynamic lighting overlays and frame-by-frame professional critiques.</p>
+<button class="font-label-sm uppercase text-primary-fixed tracking-widest flex items-center gap-xs group-hover:gap-sm transition-all">
+                            Explore Tools <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="absolute -right-8 -bottom-8 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-[120px]">camera</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Weekly Momentum -->
+<section class="mt-xxl px-margin-mobile">
+<div class="flex flex-col mb-xl">
+<h3 class="font-headline-md text-primary-fixed uppercase tracking-[0.1em]">Weekly Momentum</h3>
+<p class="font-label-sm text-on-surface-variant mt-xs">Current Path to Mastery</p>
+</div>
+<div class="space-y-lg">
+<!-- Item 1 -->
+<div>
+<div class="flex justify-between items-end mb-sm">
+<span class="font-label-md uppercase tracking-widest text-on-surface">Classical Ballet</span>
+<span class="font-label-sm text-primary-fixed">88%</span>
+</div>
+<div class="h-[2px] w-full bg-outline-variant/20 overflow-hidden">
+<div class="h-full bg-primary-fixed w-[88%] performance-glow relative">
+<div class="absolute right-0 top-0 h-full w-4 bg-white/20 blur-sm"></div>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div>
+<div class="flex justify-between items-end mb-sm">
+<span class="font-label-md uppercase tracking-widest text-on-surface">Method Acting</span>
+<span class="font-label-sm text-primary-fixed">64%</span>
+</div>
+<div class="h-[2px] w-full bg-outline-variant/20 overflow-hidden">
+<div class="h-full bg-primary-fixed w-[64%] performance-glow relative">
+<div class="absolute right-0 top-0 h-full w-4 bg-white/20 blur-sm"></div>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div>
+<div class="flex justify-between items-end mb-sm">
+<span class="font-label-md uppercase tracking-widest text-on-surface">Modern Improv</span>
+<span class="font-label-sm text-primary-fixed">42%</span>
+</div>
+<div class="h-[2px] w-full bg-outline-variant/20 overflow-hidden">
+<div class="h-full bg-primary-fixed w-[42%] performance-glow relative">
+<div class="absolute right-0 top-0 h-full w-4 bg-white/20 blur-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Nav Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-surface-container-lowest/80 backdrop-blur-md border-t border-outline-variant/30 flex justify-around items-center px-xl pb-lg pt-md">
+<!-- JUDGE (Inactive) -->
+<button class="flex flex-col items-center justify-center text-secondary pt-2 group transition-all duration-300 hover:text-primary-fixed-dim">
+<span class="material-symbols-outlined text-[28px]">analytics</span>
+<span class="sr-only">JUDGE</span>
+</button>
+<!-- COMMUNITY (Inactive) -->
+<button class="flex flex-col items-center justify-center text-secondary pt-2 group transition-all duration-300 hover:text-primary-fixed-dim">
+<span class="material-symbols-outlined text-[28px]">group</span>
+<span class="sr-only">COMMUNITY</span>
+</button>
+<!-- PROFILE (Active for this landing/personal view) -->
+<button class="flex flex-col items-center justify-center text-primary-fixed border-t-2 border-primary-fixed -mt-0.5 pt-2 active:scale-110 transition-all duration-300">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="sr-only">PROFILE</span>
+</button>
+</nav>
+<script>
+        // Atmospheric Micro-interaction for mastery bars
+        document.addEventListener('DOMContentLoaded', () => {
+            const bars = document.querySelectorAll('.performance-glow');
+            bars.forEach(bar => {
+                const finalWidth = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.transition = 'width 1.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    bar.style.width = finalWidth;
+                }, 300);
+            });
+        });
+    </script>
+</body></html>
