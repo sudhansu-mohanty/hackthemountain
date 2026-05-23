@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera as CameraIcon, Video, VideoOff, Activity, AlertCircle, Info, RefreshCw } from 'lucide-react';
+import { Camera as CameraIcon, Video, VideoOff, Activity, AlertCircle, Info, RefreshCw, UploadCloud, FolderOpen, Play as PlayIcon, Pause as PauseIcon } from 'lucide-react';
 import { extractMetrics } from '../utils/biomechanics';
 
 const CONNECTIONS = [
@@ -18,6 +18,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
   const poseInstanceRef = useRef(null);
   const cameraInstanceRef = useRef(null);
   const latestLandmarksRef = useRef(null);
+  const requestRef = useRef(null);
   
   const [modelLoading, setModelLoading] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
@@ -25,6 +26,12 @@ export default function PoseTracker({ onAnalysisComplete }) {
   const [isRecording, setIsRecording] = useState(false);
   const [history, setHistory] = useState([]);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  // Video source mode: 'webcam' | 'file'
+  const [sourceMode, setSourceMode] = useState('webcam');
+  const [uploadedFileUrl, setUploadedFileUrl] = useState(null);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
   
   // For live stats rendering
   const [liveMetrics, setLiveMetrics] = useState({
@@ -64,7 +71,6 @@ export default function PoseTracker({ onAnalysisComplete }) {
         const xB = ptB.x * width;
         const yB = ptB.y * height;
 
-        // Key joints being analyzed in this app:
         const isKeySegment = 
           (iA === 23 && iB === 25) || (iA === 25 && iB === 27) || // left leg
           (iA === 24 && iB === 26) || (iA === 26 && iB === 28) || // right leg
@@ -123,15 +129,76 @@ export default function PoseTracker({ onAnalysisComplete }) {
     });
   };
 
+  // Webcam controls
+  const stopWebcam = () => {
+    if (cameraInstanceRef.current) {
+      try {
+        cameraInstanceRef.current.stop();
+      } catch (e) {
+        console.error("Error stopping camera:", e);
+      }
+      cameraInstanceRef.current = null;
+    }
+    setCameraActive(false);
+  };
+
+  const startWebcam = () => {
+    if (!poseInstanceRef.current || !videoRef.current) return;
+    
+    stopWebcam();
+    setError(null);
+
+    // Clear video src bindings
+    if (videoRef.current) {
+      videoRef.current.src = '';
+      videoRef.current.srcObject = null;
+    }
+
+    try {
+      const camera = new window.Camera(videoRef.current, {
+        onFrame: async () => {
+          if (videoRef.current && cameraInstanceRef.current && sourceMode === 'webcam') {
+            await poseInstanceRef.current.send({ image: videoRef.current });
+          }
+        },
+        width: 640,
+        height: 480
+      });
+      
+      camera.start()
+        .then(() => {
+          setCameraActive(true);
+        })
+        .catch((err) => {
+          console.error("Camera start failed", err);
+          setError("Camera permission denied or camera is in use. Please enable access in browser settings.");
+        });
+      cameraInstanceRef.current = camera;
+    } catch (err) {
+      console.error("Failed to initialize camera constructor", err);
+      setError("Webcam hardware access error. Check device permissions.");
+    }
+  };
+
+  // Animation frame loop for file video stream
+  const processFileFrameLoop = async () => {
+    const video = videoRef.current;
+    if (video && !video.paused && !video.ended && sourceMode === 'file') {
+      try {
+        await poseInstanceRef.current.send({ image: video });
+      } catch (e) {
+        console.error("Error processing video frame:", e);
+      }
+      requestRef.current = requestAnimationFrame(processFileFrameLoop);
+    }
+  };
+
   // Initialize MediaPipe Pose CNN
   useEffect(() => {
     let active = true;
-    let cameraInstance = null;
-    let poseInstance = null;
 
     const checkAndInitPose = () => {
       if (!window.Pose || !window.Camera) {
-        // Scripts might still be loading, retry shortly
         setTimeout(checkAndInitPose, 150);
         return;
       }
@@ -156,7 +223,6 @@ export default function PoseTracker({ onAnalysisComplete }) {
           if (!active) return;
           latestLandmarksRef.current = results.poseLandmarks;
           
-          // Update live metrics on the screen in real-time (at 30fps)
           if (results.poseLandmarks) {
             const metrics = extractMetrics(results.poseLandmarks, 0);
             if (metrics) {
@@ -173,38 +239,10 @@ export default function PoseTracker({ onAnalysisComplete }) {
         });
 
         poseInstanceRef.current = pose;
-        poseInstance = pose;
         setModelLoading(false);
-
-        // Start camera feed
-        if (videoRef.current) {
-          const camera = new window.Camera(videoRef.current, {
-            onFrame: async () => {
-              if (videoRef.current && active) {
-                await pose.send({ image: videoRef.current });
-              }
-            },
-            width: 640,
-            height: 480
-          });
-          camera.start()
-            .then(() => {
-              if (active) setCameraActive(true);
-            })
-            .catch((err) => {
-              console.error("Camera start failed", err);
-              if (active) {
-                setError("Camera permission denied or camera is in use. Please enable access in browser settings.");
-              }
-            });
-          cameraInstanceRef.current = camera;
-          cameraInstance = camera;
-        }
       } catch (err) {
         console.error("Error creating MediaPipe Pose instance:", err);
-        if (active) {
-          setError("Failed to initialize MediaPipe Pose tracking. Please reload page.");
-        }
+        setError("Failed to initialize MediaPipe Pose tracking. Please reload page.");
       }
     };
 
@@ -213,18 +251,14 @@ export default function PoseTracker({ onAnalysisComplete }) {
     // Clean up
     return () => {
       active = false;
+      stopWebcam();
       if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      if (cameraInstance) {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      
+      if (poseInstanceRef.current) {
         try {
-          cameraInstance.stop();
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      if (poseInstance) {
-        try {
-          poseInstance.close();
+          poseInstanceRef.current.close();
         } catch (e) {
           console.error(e);
         }
@@ -232,17 +266,76 @@ export default function PoseTracker({ onAnalysisComplete }) {
     };
   }, []);
 
-  // Make canvas responsive to video size
+  // Manage source mode changes
+  useEffect(() => {
+    if (modelLoading) return;
+
+    if (sourceMode === 'webcam') {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      setIsPlaying(false);
+      startWebcam();
+    } else {
+      stopWebcam();
+      // Revoke any camera feed links and load file URL if present
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        if (uploadedFileUrl) {
+          videoRef.current.src = uploadedFileUrl;
+          videoRef.current.load();
+        } else {
+          videoRef.current.src = '';
+        }
+      }
+    }
+  }, [sourceMode, modelLoading]);
+
+  // Bind video events for uploaded files
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+      if (sourceMode === 'file') {
+        requestRef.current = requestAnimationFrame(processFileFrameLoop);
+      }
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      
+      // Auto submit if recording file reaches the end
+      if (isRecording && sourceMode === 'file') {
+        stopRecording();
+      }
+    };
+
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
+
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
+    };
+  }, [sourceMode, isRecording, uploadedFileUrl]);
+
+  // Make canvas responsive
   useEffect(() => {
     const handleResize = () => {
       if (videoRef.current && canvasRef.current) {
-        const rect = videoRef.current.getBoundingClientRect();
         canvasRef.current.width = videoRef.current.videoWidth || 640;
         canvasRef.current.height = videoRef.current.videoHeight || 480;
       }
     };
 
-    // Attach load listener to video
     const video = videoRef.current;
     if (video) {
       video.addEventListener('loadedmetadata', handleResize);
@@ -257,6 +350,28 @@ export default function PoseTracker({ onAnalysisComplete }) {
     };
   }, []);
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Revoke old object URL to prevent leaks
+    if (uploadedFileUrl) {
+      URL.revokeObjectURL(uploadedFileUrl);
+    }
+
+    const fileUrl = URL.createObjectURL(file);
+    setUploadedFileUrl(fileUrl);
+    setUploadedFileName(file.name);
+    setIsRecording(false);
+    setHistory([]);
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.src = fileUrl;
+      videoRef.current.load();
+    }
+  };
+
   const startRecording = () => {
     if (isRecording) return;
     
@@ -264,10 +379,26 @@ export default function PoseTracker({ onAnalysisComplete }) {
     setHistory([]);
     setRecordingSeconds(0);
     
-    const startTime = Date.now();
+    let startTime = Date.now();
     const tempHistory = [];
 
-    // Slice frames every 200 milliseconds (5 fps)
+    // If file mode, play the video from the beginning
+    if (sourceMode === 'file' && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          // Set start time relative to playback start
+          startTime = Date.now();
+        })
+        .catch(err => {
+          console.error("Playback failed", err);
+          setIsRecording(false);
+          return;
+        });
+    }
+
+    // Slice frames every 200ms (5 FPS)
     recordingIntervalRef.current = setInterval(() => {
       const elapsedMs = Date.now() - startTime;
       const landmarks = latestLandmarksRef.current;
@@ -303,10 +434,14 @@ export default function PoseTracker({ onAnalysisComplete }) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
+
+    if (sourceMode === 'file' && videoRef.current) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
     
     setIsRecording(false);
     
-    // Switch view only if we actually captured tracking frames
     if (history.length > 0) {
       onAnalysisComplete(history);
     } else {
@@ -314,15 +449,58 @@ export default function PoseTracker({ onAnalysisComplete }) {
     }
   };
 
+  const togglePlayback = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isPlaying) {
+      video.pause();
+    } else {
+      video.play().catch(e => console.error(e));
+    }
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto w-full px-4 py-8">
       {/* LEFT: Video & Canvas Capture Area */}
       <div className="flex-1 flex flex-col items-center">
+        {/* SOURCE SWITCHER TABS */}
+        <div className="flex gap-2 mb-4 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 w-full max-w-2xl">
+          <button
+            type="button"
+            disabled={isRecording}
+            onClick={() => setSourceMode('webcam')}
+            className={`flex-1 py-2.5 px-4 rounded-lg font-orbitron font-bold text-xs tracking-wider transition-all duration-300 ${
+              isRecording ? 'opacity-40 cursor-not-allowed' : ''
+            } ${
+              sourceMode === 'webcam'
+                ? 'bg-cyan-500 text-slate-950 shadow-lg font-black'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            📷 WEBCAM FEED
+          </button>
+          <button
+            type="button"
+            disabled={isRecording}
+            onClick={() => setSourceMode('file')}
+            className={`flex-1 py-2.5 px-4 rounded-lg font-orbitron font-bold text-xs tracking-wider transition-all duration-300 ${
+              isRecording ? 'opacity-40 cursor-not-allowed' : ''
+            } ${
+              sourceMode === 'file'
+                ? 'bg-cyan-500 text-slate-950 shadow-lg font-black'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            📁 UPLOAD VIDEO
+          </button>
+        </div>
+
         <div className="relative w-full aspect-[4/3] max-w-2xl bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center">
           {/* HTML5 Video Element */}
           <video
             ref={videoRef}
-            className="w-full h-full object-cover pointer-events-none scale-x-[-1]"
+            className={`w-full h-full object-cover pointer-events-none ${sourceMode === 'webcam' ? 'scale-x-[-1]' : ''}`}
             playsInline
             muted
           />
@@ -330,12 +508,33 @@ export default function PoseTracker({ onAnalysisComplete }) {
           {/* Precise Drawing Overlay */}
           <canvas
             ref={canvasRef}
-            className="absolute top-0 left-0 w-full h-full object-cover scale-x-[-1]"
+            className={`absolute top-0 left-0 w-full h-full object-cover ${sourceMode === 'webcam' ? 'scale-x-[-1]' : ''}`}
           />
+
+          {/* Drag & Drop File Upload Overlay */}
+          {sourceMode === 'file' && !uploadedFileUrl && (
+            <label className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 cursor-pointer p-8 text-center hover:bg-slate-900/40 transition-colors z-20">
+              <UploadCloud className="h-12 w-12 text-cyan-400 animate-pulse" />
+              <div className="flex flex-col gap-1">
+                <span className="font-orbitron font-bold text-sm text-slate-200 uppercase tracking-wider">
+                  Upload Kinematic Video
+                </span>
+                <span className="text-xs text-slate-500">
+                  Drag and drop or browse MP4 / WebM files
+                </span>
+              </div>
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+          )}
 
           {/* Initial Loading Overlay */}
           {modelLoading && (
-            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center gap-4 text-center p-6 z-10">
+            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center gap-4 text-center p-6 z-30">
               <RefreshCw className="h-10 w-10 text-cyan-400 animate-spin" />
               <h3 className="font-semibold text-lg text-slate-100 font-orbitron tracking-wider">INITIALIZING SYSTEM</h3>
               <p className="text-slate-400 text-sm max-w-sm">
@@ -345,16 +544,16 @@ export default function PoseTracker({ onAnalysisComplete }) {
           )}
 
           {/* Camera Access Error Overlay */}
-          {error && !modelLoading && (
-            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 text-center p-6 z-10">
+          {error && !modelLoading && sourceMode === 'webcam' && (
+            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 text-center p-6 z-30">
               <AlertCircle className="h-12 w-12 text-rose-500" />
               <h3 className="font-semibold text-lg text-rose-500 font-orbitron tracking-wider">HARDWARE ERROR</h3>
               <p className="text-slate-300 text-sm max-w-md">{error}</p>
               <button 
-                onClick={() => window.location.reload()}
+                onClick={() => startWebcam()}
                 className="mt-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors border border-slate-700 text-sm"
               >
-                Reload Application
+                Retry Camera Access
               </button>
             </div>
           )}
@@ -364,13 +563,13 @@ export default function PoseTracker({ onAnalysisComplete }) {
             <div className="absolute top-4 left-4 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md border border-red-500/30 px-3 py-1.5 rounded-full z-10">
               <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
               <span className="text-xs font-orbitron font-semibold text-red-400 tracking-wider">
-                RECORDING {recordingSeconds}s / 15s
+                {sourceMode === 'file' ? 'ANALYZING PLAYBACK' : 'RECORDING'} {recordingSeconds}s / 15s
               </span>
             </div>
           )}
           
           {/* Skeleton Tracking Status */}
-          {!modelLoading && !error && (
+          {!modelLoading && !error && (sourceMode === 'webcam' || uploadedFileUrl) && (
             <div className="absolute top-4 right-4 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md border border-emerald-500/30 px-3 py-1.5 rounded-full z-10">
               <span className={`w-2.5 h-2.5 rounded-full ${latestLandmarksRef.current ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
               <span className="text-xs font-orbitron font-semibold text-slate-300 tracking-wider">
@@ -380,21 +579,52 @@ export default function PoseTracker({ onAnalysisComplete }) {
           )}
         </div>
 
-        {/* Buttons / Controls */}
+        {/* CONTROLS AREA */}
         <div className="mt-6 flex flex-col items-center gap-3 w-full max-w-2xl">
+          {sourceMode === 'file' && uploadedFileUrl && (
+            <div className="flex justify-between items-center bg-slate-900/60 border border-slate-800 px-4 py-3 rounded-xl w-full text-sm">
+              <div className="flex items-center gap-2 truncate text-slate-300 font-mono text-xs">
+                <FolderOpen className="h-4 w-4 text-cyan-400 shrink-0" />
+                <span className="truncate">{uploadedFileName}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={togglePlayback}
+                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border border-slate-700"
+                  title={isPlaying ? "Pause" : "Play"}
+                >
+                  {isPlaying ? <PauseIcon className="h-3.5 w-3.5" /> : <PlayIcon className="h-3.5 w-3.5" />}
+                </button>
+                <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold cursor-pointer border border-slate-700 transition-colors">
+                  Change File
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-4 w-full justify-center">
             {!isRecording ? (
               <button
                 onClick={startRecording}
-                disabled={modelLoading || error || !latestLandmarksRef.current}
+                disabled={
+                  modelLoading || 
+                  (sourceMode === 'webcam' && (error || !latestLandmarksRef.current)) ||
+                  (sourceMode === 'file' && !uploadedFileUrl)
+                }
                 className={`flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-orbitron font-bold tracking-wider text-base transition-all duration-300 shadow-lg border w-full sm:w-auto ${
-                  (modelLoading || error || !latestLandmarksRef.current)
+                  (modelLoading || (sourceMode === 'webcam' && (error || !latestLandmarksRef.current)) || (sourceMode === 'file' && !uploadedFileUrl))
                     ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'
                     : 'bg-cyan-500 hover:bg-cyan-400 border-cyan-400 text-slate-950 active:scale-95 hover:shadow-cyan-500/20'
                 }`}
               >
                 <Video className="h-5 w-5" />
-                START ANALYSIS RECORDING
+                {sourceMode === 'file' ? 'START VIDEO ANALYSIS' : 'START ANALYSIS RECORDING'}
               </button>
             ) : (
               <button
@@ -410,9 +640,13 @@ export default function PoseTracker({ onAnalysisComplete }) {
           <div className="flex items-start gap-2 bg-slate-900/60 border border-slate-800 p-4 rounded-xl max-w-2xl w-full text-slate-400 text-xs leading-relaxed">
             <Info className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-slate-200 mb-1">How it works:</p>
+              <p className="font-semibold text-slate-200 mb-1">
+                {sourceMode === 'file' ? 'Video Analysis Instructions:' : 'Webcam Instructions:'}
+              </p>
               <p>
-                Step back so your full body (head to toe) is visible. Press start, execute a joint movement (e.g. Squat, Lunge, or Bicep Curl) for 5-15 seconds, then stop. The system slices your movement into discrete frame snapshots, extracting real-time angles using localized AI, which are formatted into a compressed time-series JSON array for advanced biomechanical LLM auditing.
+                {sourceMode === 'file' 
+                  ? 'Upload an athletic video. Click "Start Video Analysis". The engine will automatically play the file, track skeletal lines in real-time, slice tracking coordinates at 5 Hz, and generate your biomechanical audit report when the video ends.'
+                  : 'Stand back so your full body is visible. Click start, execute a joint movement (e.g. Squat or Bicep Curl) for 5-15 seconds, and click stop to transmit the tracking telemetry to Gemini.'}
               </p>
             </div>
           </div>
