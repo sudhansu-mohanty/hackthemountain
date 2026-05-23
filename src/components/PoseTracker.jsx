@@ -19,6 +19,7 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
   const cameraInstanceRef = useRef(null);
   const latestLandmarksRef = useRef(null);
   const requestRef = useRef(null);
+  const resolveFramePromiseRef = useRef(null);
   
   const [modelLoading, setModelLoading] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
@@ -33,6 +34,7 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
   const [uploadedFileUrl, setUploadedFileUrl] = useState(null);
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [rawFile, setRawFile] = useState(null);
   
   // For live stats rendering
   const [liveMetrics, setLiveMetrics] = useState({
@@ -277,6 +279,13 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
               }
             }
           }
+
+          // Always resolve the pending frame promise if one is active to prevent blocking the scan loop
+          if (resolveFramePromiseRef.current) {
+            const resolveFn = resolveFramePromiseRef.current;
+            resolveFramePromiseRef.current = null;
+            resolveFn();
+          }
         });
 
         poseInstanceRef.current = pose;
@@ -402,6 +411,7 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
     }
 
     const fileUrl = URL.createObjectURL(file);
+    setRawFile(file);
     setUploadedFileUrl(fileUrl);
     setUploadedFileName(file.name);
     setIsRecording(false);
@@ -475,7 +485,14 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
           bgVideo.removeEventListener('seeked', onSeeked);
           if (poseInstanceRef.current) {
             try {
-              await poseInstanceRef.current.send({ image: bgVideo });
+              // Wait for the pose processing callback (onResults) to complete for this frame
+              await new Promise((resolveFrame) => {
+                resolveFramePromiseRef.current = resolveFrame;
+                poseInstanceRef.current.send({ image: bgVideo }).catch(err => {
+                  console.error("Pose send error:", err);
+                  resolveFrame();
+                });
+              });
             } catch (err) {
               console.error("Frame processing error during seek:", err);
             }
@@ -506,6 +523,11 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
     // Trigger callback to initiate Gemini analysis in the background
     if (isRecordingRef.current && onBackgroundTelemetryReady) {
       onBackgroundTelemetryReady(historyRef.current);
+    }
+
+    // Automatically stop recording and trigger UI processing view
+    if (isRecordingRef.current) {
+      stopRecording();
     }
   };
 
@@ -573,7 +595,7 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
     
     const finalHistory = historyRef.current;
     if (finalHistory.length > 0) {
-      onAnalysisComplete(finalHistory, sourceModeRef.current);
+      onAnalysisComplete(finalHistory, sourceModeRef.current, rawFile);
     } else {
       alert("No movement data was captured. Ensure your body is fully visible in the camera frame and try again.");
     }
