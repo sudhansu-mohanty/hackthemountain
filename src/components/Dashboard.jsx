@@ -3,6 +3,7 @@ import { RefreshCw, Award, Activity, ShieldAlert, Heart, Calendar, ShieldCheck, 
 
 export default function Dashboard({ analysisText, trackingData, onReset, isUploadedVideo = false }) {
   const [animatedScore, setAnimatedScore] = useState(0);
+  const [viewMode, setViewMode] = useState('condensed');
 
   // Parse the LLM response to extract the score and markdown content
   const parseResponse = () => {
@@ -35,10 +36,14 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
 
       if (header.startsWith('###')) {
         const title = header.replace('###', '').trim();
-        sections.push({ title, body });
+        // Split by === CONDENSED === separator
+        const parts = body.split(/===\s*CONDENSED\s*===/i);
+        const elaborated = (parts[0] || '').trim();
+        const condensed = (parts[1] || elaborated).trim();
+        sections.push({ title, elaborated, condensed });
       } else if (section.trim()) {
         // Fallback for body content without a specific header
-        sections.push({ title: '📋 Analysis Details', body: section.trim() });
+        sections.push({ title: '📋 Analysis Details', elaborated: section.trim(), condensed: section.trim() });
       }
     });
 
@@ -237,6 +242,33 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
 
         {/* RIGHT PANEL: Critique Cards (Columns 5-12) */}
         <div className="md:col-span-7 lg:col-span-8 flex flex-col gap-6 w-full">
+          {/* View Mode Toggle Switch */}
+          <div className="flex justify-between items-center bg-slate-900/30 border border-slate-800 rounded-xl p-3">
+            <span className="text-xs font-orbitron font-semibold text-slate-400 tracking-wider">REPORT DETAIL:</span>
+            <div className="bg-slate-950 p-1 rounded-lg border border-slate-800 flex gap-1">
+              <button
+                onClick={() => setViewMode('condensed')}
+                className={`px-4 py-1.5 rounded text-xs font-orbitron font-bold tracking-wider transition-all duration-300 ${
+                  viewMode === 'condensed'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                CONDENSED
+              </button>
+              <button
+                onClick={() => setViewMode('elaborated')}
+                className={`px-4 py-1.5 rounded text-xs font-orbitron font-bold tracking-wider transition-all duration-300 ${
+                  viewMode === 'elaborated'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                ELABORATED
+              </button>
+            </div>
+          </div>
+
           {sections.map((section, idx) => {
             // Apply border highlight depending on heading icon
             const isSymmetry = section.title.includes('Symmetry');
@@ -260,7 +292,7 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
 
                 {/* Formatted Text */}
                 <div className="space-y-1 font-sans">
-                  {formatBodyText(section.body)}
+                  {formatBodyText(viewMode === 'condensed' ? section.condensed : section.elaborated)}
                 </div>
               </div>
             );

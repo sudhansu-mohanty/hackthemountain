@@ -77,10 +77,13 @@ export default function App() {
         "Formatting Constraints: " +
         "- You MUST output 'SCORE: [number]/100' on the very first line of your response. " +
         "- Follow it immediately with two markdown sections using the exact headers '### ⚖️ Symmetry & Balance' and '### 📉 Form Corrections'. " +
+        "- Within each of these sections, you MUST output two versions of the critique separated by a line containing '=== CONDENSED ==='. " +
+        "  1. The first part (before '=== CONDENSED ===') is the ELABORATED version, containing detailed coaching feedback and analysis (around 3-4 descriptive sentences per bullet point). " +
+        "  2. The second part (after '=== CONDENSED ===') is the CONDENSED version, containing very short and concise bullet points (strictly 1 short sentence maximum per bullet point, e.g. 'Knee alignment was stable but ankles showed slight asymmetry.') summarizing the findings. " +
         "- Within these sections, use standard bullet points. For emphasis, write the key take-away text in normal case or uppercase rather than using '**'. Summarize occurrences relative to the movement phase (e.g., 'primarily at deep flexion' or 'during initial extension'). " +
         "- You are forbidden from adding introductory or concluding conversational filler.";
 
-      const prompt = `Assess the kinematics of this joint movement session based on the telemetry dataset below. Analyze joint angles and range of motion (knees, elbows, hips, shoulders, ankles), postural lean (torso tilt), and symmetry balance. Note: You must not use any '**' markers in your response:
+      const prompt = `Assess the kinematics of this joint movement session based on the telemetry dataset below. Analyze joint angles and range of motion (knees, elbows, hips, shoulders, ankles), postural lean (torso tilt), and symmetry balance. Note: You must not use any '**' markers in your response, and you must include the '=== CONDENSED ===' separator within each section to divide elaborated and condensed text:
 
 \`\`\`json
 ${JSON.stringify(trackingHistory, null, 2)}
