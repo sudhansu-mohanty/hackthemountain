@@ -14,6 +14,7 @@ export default function App() {
   const [processingPhase, setProcessingPhase] = useState('Initializing...');
   const [analysisResult, setAnalysisResult] = useState('');
   const [savedTrackingData, setSavedTrackingData] = useState([]);
+  const [isUploadedVideo, setIsUploadedVideo] = useState(false);
 
   // Sync API Key to localStorage
   useEffect(() => {
@@ -50,7 +51,8 @@ export default function App() {
   }, [view]);
 
   // Handler for analyzing tracking history
-  const handleAnalysisComplete = async (trackingHistory) => {
+  const handleAnalysisComplete = async (trackingHistory, sourceMode) => {
+    setIsUploadedVideo(sourceMode === 'file');
     setError(null);
     setView('processing');
 
@@ -288,7 +290,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
             analysisText={analysisResult}
             trackingData={savedTrackingData}
             onReset={handleReset}
-            isUploadedVideo={sourceMode === 'file'}
+            isUploadedVideo={isUploadedVideo}
           />
         )}
       </main>

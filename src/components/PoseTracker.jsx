@@ -481,7 +481,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
     
     const finalHistory = historyRef.current;
     if (finalHistory.length > 0) {
-      onAnalysisComplete(finalHistory);
+      onAnalysisComplete(finalHistory, sourceModeRef.current);
     } else {
       alert("No movement data was captured. Ensure your body is fully visible in the camera frame and try again.");
     }
