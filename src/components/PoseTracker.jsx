@@ -256,6 +256,23 @@ export default function PoseTracker({ onAnalysisComplete }) {
               });
             }
             drawSkeleton(results.poseLandmarks);
+
+            // Deterministic sampling for video file uploads based on playback time
+            const video = videoRef.current;
+            if (video && sourceModeRef.current === 'file' && isRecordingRef.current) {
+              const currentTimeMs = Math.round(video.currentTime * 1000);
+              const lastCapturedTime = historyRef.current.length > 0
+                ? historyRef.current[historyRef.current.length - 1].timestamp_ms
+                : -200;
+
+              if (currentTimeMs - lastCapturedTime >= 200) {
+                const frameMetrics = extractMetrics(results.poseLandmarks, currentTimeMs);
+                if (frameMetrics) {
+                  historyRef.current.push(frameMetrics);
+                  setHistory([...historyRef.current]);
+                }
+              }
+            }
           }
         });
 
@@ -422,20 +439,22 @@ export default function PoseTracker({ onAnalysisComplete }) {
         });
     }
 
-    // Slice frames every 200ms (5 FPS)
-    recordingIntervalRef.current = setInterval(() => {
-      const elapsedMs = Date.now() - startTime;
-      const landmarks = latestLandmarksRef.current;
-      
-      if (landmarks) {
-        const frameMetrics = extractMetrics(landmarks, elapsedMs);
-        if (frameMetrics) {
-          tempHistory.push(frameMetrics);
-          historyRef.current = [...tempHistory];
-          setHistory([...tempHistory]);
+    // Slice frames every 200ms (5 FPS) - Only run wall-clock interval for webcam
+    if (sourceMode === 'webcam') {
+      recordingIntervalRef.current = setInterval(() => {
+        const elapsedMs = Date.now() - startTime;
+        const landmarks = latestLandmarksRef.current;
+        
+        if (landmarks) {
+          const frameMetrics = extractMetrics(landmarks, elapsedMs);
+          if (frameMetrics) {
+            tempHistory.push(frameMetrics);
+            historyRef.current = [...tempHistory];
+            setHistory([...tempHistory]);
+          }
         }
-      }
-    }, 200);
+      }, 200);
+    }
 
     // Recording duration stopwatch
     timerIntervalRef.current = setInterval(() => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Award, Activity, ShieldAlert, Heart, Calendar, ShieldCheck, CornerDownRight } from 'lucide-react';
 
-export default function Dashboard({ analysisText, trackingData, onReset }) {
+export default function Dashboard({ analysisText, trackingData, onReset, isUploadedVideo = false }) {
   const [animatedScore, setAnimatedScore] = useState(0);
 
   // Parse the LLM response to extract the score and markdown content
@@ -13,7 +13,12 @@ export default function Dashboard({ analysisText, trackingData, onReset }) {
 
     // Regex to match "SCORE: [number]/100" or similar
     const scoreMatch = firstLine.match(/SCORE:\s*(\d+)/i);
-    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 70;
+    let score = scoreMatch ? parseInt(scoreMatch[1], 10) : 70;
+
+    if (isUploadedVideo) {
+      // Buff and clamp scores for uploaded videos (never under 50, never over 95)
+      score = Math.max(50, Math.min(95, score));
+    }
 
     // Remaining content excluding the first line
     const remainingContent = lines.slice(1).join('\n').trim();

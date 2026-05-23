@@ -92,7 +92,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
         contents: prompt,
         config: {
           systemInstruction: systemInstruction,
-          temperature: 0.1
+          temperature: 0.0
         }
       });
 
@@ -285,6 +285,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
             analysisText={analysisResult}
             trackingData={savedTrackingData}
             onReset={handleReset}
+            isUploadedVideo={sourceMode === 'file'}
           />
         )}
       </main>
