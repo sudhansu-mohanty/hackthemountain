@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Square, Volume2, VolumeX, Plus, Minus, Zap, Activity, Clock, RefreshCw } from 'lucide-react';
+import VocalJudge from './VocalJudge';
 
 export default function Metronome() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -7,6 +8,8 @@ export default function Metronome() {
   const [mode, setMode] = useState('bpm'); // 'bpm' | 'timeSig'
   const [feedbackMode, setFeedbackMode] = useState('audio'); // 'audio' | 'haptic' | 'both'
   const [isVibrationSupported, setIsVibrationSupported] = useState(false);
+  const [vibeCount, setVibeCount] = useState(0);
+  const [isAccentVibe, setIsAccentVibe] = useState(false);
   
   // Time signature state
   const [beatsPerMeasure, setBeatsPerMeasure] = useState(4);
@@ -23,6 +26,10 @@ export default function Metronome() {
   const volumeRef = useRef(0.8);
   const isMutedRef = useRef(false);
   const feedbackModeRef = useRef('audio');
+  
+  // Store previous states for Vocal Judge
+  const previousFeedbackModeRef = useRef('audio');
+  const previousIsMutedRef = useRef(false);
 
   const nextNoteTimeRef = useRef(0.0);
   const currentBeatInMeasureRef = useRef(0);
@@ -144,11 +151,18 @@ export default function Metronome() {
         const playedNote = notesInQueueRef.current.shift();
         activeBeatVal = playedNote.note;
 
+        const isAccent = modeRef.current === 'timeSig' && playedNote.note === 0;
+
         // Synchronously trigger physical haptics exactly when the beat triggers!
         if ((feedbackModeRef.current === 'haptic' || feedbackModeRef.current === 'both') && navigator.vibrate) {
           // Accent / downbeat (beat 0) vibrates longer (120ms vs 40ms)
-          const isAccent = modeRef.current === 'timeSig' && playedNote.note === 0;
           navigator.vibrate(isAccent ? 120 : 40);
+        }
+
+        // Trigger visual haptics simulation! (Only if feedbackMode is haptic or both)
+        if (feedbackModeRef.current === 'haptic' || feedbackModeRef.current === 'both') {
+          setVibeCount((prev) => prev + 1);
+          setIsAccentVibe(isAccent);
         }
       }
 
@@ -166,6 +180,8 @@ export default function Metronome() {
   const stopMetronomeEngine = () => {
     setIsPlaying(false);
     setActiveBeat(-1);
+    setVibeCount(0);
+    setIsAccentVibe(false);
     
     if (timerIdRef.current) {
       clearInterval(timerIdRef.current);
@@ -222,6 +238,30 @@ export default function Metronome() {
       transform: `rotate(${angle}deg)`,
       transition: 'transform 0.05s linear' // small buffer transition for liquid motion
     };
+  };
+
+  // Vocal Judge Handlers
+  const handleStartJudge = () => {
+    previousFeedbackModeRef.current = feedbackModeRef.current;
+    previousIsMutedRef.current = isMutedRef.current;
+
+    setIsMuted(true);
+    setFeedbackMode('haptic'); // Switch to haptic to prevent microphone feedback
+    
+    // Force a complete restart of the metronome to perfectly align its phase 
+    // (t=0) with the exact moment the Vocal Judge starts recording.
+    if (isPlaying) {
+      stopMetronomeEngine();
+    }
+    setTimeout(() => startMetronomeEngine(), 50);
+  };
+
+  const handleStopJudge = () => {
+    setIsMuted(previousIsMutedRef.current);
+    setFeedbackMode(previousFeedbackModeRef.current);
+    if (isPlaying) {
+      stopMetronomeEngine();
+    }
   };
 
   return (
@@ -634,6 +674,71 @@ export default function Metronome() {
             </div>
           </div>
 
+        {/* VIRTUAL HAPTIC SIMULATOR (Only rendered if physical vibration is NOT supported) */}
+        {!isVibrationSupported && (
+          <div className="glassmorphism rounded-2xl border border-slate-800 p-5 shadow-lg flex flex-col gap-3">
+            <h3 className="text-xs font-orbitron font-bold text-slate-300 tracking-wider uppercase border-b border-slate-800 pb-2 flex items-center gap-2 select-none">
+              <Zap className="h-4 w-4 text-cyan-400" />
+              VIRTUAL HAPTIC SIMULATOR
+            </h3>
+            
+            <div className="flex flex-col items-center justify-center py-4 bg-slate-950/60 rounded-xl border border-slate-900 overflow-hidden relative min-h-[160px]">
+              {/* Expanding Shockwaves (Ripples) when vibrating */}
+              {isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') && vibeCount > 0 && (
+                <div 
+                  key={`wave-${vibeCount}`} 
+                  className={`absolute w-36 h-36 rounded-full border border-dashed pointer-events-none animate-[ripple_0.3s_ease-out_1] ${
+                    isAccentVibe ? 'border-emerald-500/30' : 'border-cyan-500/30'
+                  }`}
+                />
+              )}
+
+              {/* Stylized glassmorphic smartphone mockup */}
+              <div 
+                key={`vibe-${vibeCount}`}
+                className={`relative w-16 h-28 rounded-2xl border bg-slate-900/80 shadow-2xl flex flex-col items-center justify-between p-2.5 transition-all duration-75 select-none ${
+                  isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') && vibeCount > 0
+                    ? (isAccentVibe ? 'animate-shake-long border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] bg-emerald-950/20' : 'animate-shake-short border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.25)] bg-cyan-950/20')
+                    : 'border-slate-800'
+                }`}
+              >
+                {/* Speaker Grill */}
+                <div className="w-6 h-1 bg-slate-800 rounded-full" />
+
+                {/* Zap / Phone State Icon */}
+                <div className="flex flex-col items-center gap-1">
+                  <Zap className={`h-6 w-6 transition-all ${
+                    isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') && vibeCount > 0
+                      ? (isAccentVibe ? 'text-emerald-400 scale-110 animate-pulse' : 'text-cyan-400')
+                      : 'text-slate-700'
+                  }`} />
+                  <span className="text-[7px] font-orbitron font-extrabold text-slate-500 tracking-widest uppercase">HAPTIC</span>
+                </div>
+
+                {/* Home Indicator */}
+                <div className="w-8 h-1 bg-slate-800 rounded-full" />
+              </div>
+
+              {/* Status Text HUD */}
+              <div className="text-[9px] font-orbitron text-center mt-3 tracking-wider select-none">
+                {isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') ? (
+                  vibeCount > 0 ? (
+                    isAccentVibe ? (
+                      <span className="text-emerald-400 font-extrabold animate-pulse">⚡ DOWNBEAT VIBE (120ms)</span>
+                    ) : (
+                      <span className="text-cyan-400 font-bold">📳 STANDARD VIBE (40ms)</span>
+                    )
+                  ) : (
+                    <span className="text-slate-400">WAITING FOR BEAT...</span>
+                  )
+                ) : (
+                  <span className="text-slate-650">SIMULATOR STANDBY</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
           {/* SPORTS CADENCE PRESETS */}
           <div className="glassmorphism rounded-2xl border border-slate-800 p-5 shadow-lg flex-1 flex flex-col gap-4">
             <div>
@@ -694,11 +799,46 @@ export default function Metronome() {
 
       </div>
 
+      {/* VOCAL RHYTHM JUDGE COMPONENT */}
+      <div className="mt-2">
+        <VocalJudge 
+          bpm={bpm} 
+          isPlaying={isPlaying} 
+          onStartJudge={handleStartJudge} 
+          onStopJudge={handleStopJudge} 
+        />
+      </div>
+
       {/* Fade In Animation styles */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shake-short {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          20% { transform: translate(-3px, 1px) rotate(-1.5deg); }
+          40% { transform: translate(3px, -1px) rotate(1.5deg); }
+          60% { transform: translate(-2px, -2px) rotate(-0.5deg); }
+          80% { transform: translate(2px, 2px) rotate(0.5deg); }
+        }
+        @keyframes shake-long {
+          0%, 100% { transform: translate(0, 0) scale(1.03); }
+          10% { transform: translate(-4px, 2px) rotate(-2.5deg); }
+          30% { transform: translate(4px, -2px) rotate(2.5deg); }
+          50% { transform: translate(-3px, -3px) rotate(-1.5deg); }
+          70% { transform: translate(3px, 3px) rotate(1.5deg); }
+          90% { transform: translate(-2px, 1px) rotate(-0.5deg); }
+        }
+        @keyframes ripple {
+          0% { transform: scale(0.6); opacity: 0.8; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }
+        .animate-shake-short {
+          animation: shake-short 0.08s ease-in-out;
+        }
+        .animate-shake-long {
+          animation: shake-long 0.18s ease-in-out;
         }
       `}</style>
     </div>
