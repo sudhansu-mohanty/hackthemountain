@@ -4,7 +4,10 @@ import { GoogleGenAI } from '@google/genai';
 import PoseTracker from './components/PoseTracker';
 import Dashboard from './components/Dashboard';
 import { calculateSessionSummary } from './utils/biomechanics';
+
+const Metronome = React.lazy(() => import('./components/Metronome'));
 export default function App() {
+  const [currentTab, setCurrentTab] = useState('judge'); // 'judge' | 'metronome'
   const [view, setView] = useState('capture'); // 'capture' | 'processing' | 'results'
   const [apiKey, setApiKey] = useState(() => {
     return localStorage.getItem('bioform_gemini_api_key') || '';
@@ -56,7 +59,7 @@ export default function App() {
   }, [view]);
 
   // System instruction and prompt helper to prevent discrepancy bugs
-  const systemInstruction = 
+  const systemInstruction =
     "You are an AI Sports Scientist and Biomechanics Coach. Your purpose is to ingest time-series JSON descriptions of joint movements and output a highly client-friendly, motivating, and action-oriented athletic performance audit. " +
     "Your report must be structured, professional, and clear. You must avoid raw data dumps, computer-science terminology, and listing long lists of raw timestamps (like [9983, 10582...]). Write in a tone that is encouraging yet highly precise for an athlete. " +
     "You are strictly forbidden from using double asterisks '**' (bold markdown markers) anywhere in your response. Instead, write in clear plain text or standard bullet lists. " +
@@ -86,7 +89,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
   // Pre-fetch Gemini assessment in the background as soon as telemetry is compiled
   const handleBackgroundTelemetryReady = (trackingHistory) => {
     console.log(`[BioForm API] Background telemetry ready. Triggering prefetched Gemini request. Frames: ${trackingHistory.length}`);
-    
+
     const keyToUse = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
     if (!keyToUse) return; // Will display warning on handleAnalysisComplete if missing
 
@@ -105,19 +108,19 @@ ${JSON.stringify(trackingHistory, null, 2)}
         temperature: 0.0
       }
     })
-    .then(response => {
-      if (!response || !response.text) {
-        throw new Error('No assessment received from the Gemini AI service.');
-      }
-      setPrefetchedResult(response.text);
-      return response.text;
-    })
-    .catch(err => {
-      console.error("Background prefetch error:", err);
-      const msg = err.message || 'An error occurred during background pre-fetching.';
-      setPrefetchedError(msg);
-      throw err;
-    });
+      .then(response => {
+        if (!response || !response.text) {
+          throw new Error('No assessment received from the Gemini AI service.');
+        }
+        setPrefetchedResult(response.text);
+        return response.text;
+      })
+      .catch(err => {
+        console.error("Background prefetch error:", err);
+        const msg = err.message || 'An error occurred during background pre-fetching.';
+        setPrefetchedError(msg);
+        throw err;
+      });
   };
 
   // Handler for analyzing tracking history
@@ -155,7 +158,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
     }
 
     const keyToUse = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
-    
+
     if (!keyToUse) {
       setError('A Gemini API Key is required to run biomechanical judging. Please configure it in the settings panel above.');
       setView('capture');
@@ -229,25 +232,48 @@ ${JSON.stringify(trackingHistory, null, 2)}
             </div>
           </div>
 
+          {/* MAIN TAB SWITCHER (CENTER PILL) */}
+          <div className="flex bg-slate-900 border border-slate-800 p-1.5 rounded-2xl text-[10px] sm:text-xs font-orbitron shadow-lg shadow-black/40">
+            <button
+              onClick={() => setCurrentTab('judge')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-extrabold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${currentTab === 'judge'
+                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/5'
+                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                }`}
+            >
+              🧬 FORM JUDGE
+            </button>
+            <button
+              onClick={() => setCurrentTab('metronome')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-extrabold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${currentTab === 'metronome'
+                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/5'
+                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                }`}
+            >
+              ⏱️ METRONOME
+            </button>
+          </div>
+
           {/* Navigation / Configuration Actions */}
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            {/* View indicators */}
-            <div className="hidden md:flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 p-1 rounded-lg text-xs font-orbitron mr-2">
-              <span className={`px-2.5 py-1 rounded-md transition-all ${view === 'capture' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 border border-transparent'}`}>CAPTURE</span>
-              <span className="text-slate-700">➔</span>
-              <span className={`px-2.5 py-1 rounded-md transition-all ${view === 'processing' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 border border-transparent'}`}>PROCESSING</span>
-              <span className="text-slate-700">➔</span>
-              <span className={`px-2.5 py-1 rounded-md transition-all ${view === 'results' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 border border-transparent'}`}>RESULTS</span>
-            </div>
+            {/* View indicators (Only show when inside Form Judge tab) */}
+            {currentTab === 'judge' && (
+              <div className="hidden lg:flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 p-1.5 rounded-xl text-[10px] font-orbitron mr-2 select-none">
+                <span className={`px-2 py-0.5 rounded transition-all ${view === 'capture' ? 'text-cyan-400 font-bold' : 'text-slate-500'}`}>CAPTURE</span>
+                <span className="text-slate-700">➔</span>
+                <span className={`px-2 py-0.5 rounded transition-all ${view === 'processing' ? 'text-cyan-400 font-bold animate-pulse' : 'text-slate-500'}`}>PROCESSING</span>
+                <span className="text-slate-700">➔</span>
+                <span className={`px-2 py-0.5 rounded transition-all ${view === 'results' ? 'text-cyan-400 font-bold' : 'text-slate-500'}`}>RESULTS</span>
+              </div>
+            )}
 
             {/* API Key Configure Button */}
             <button
               onClick={() => setShowKeyModal(!showKeyModal)}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-xl font-orbitron font-bold text-xs tracking-wider transition-all duration-300 ${
-                apiKey 
+              className={`flex items-center gap-2 px-4 py-2 border rounded-xl font-orbitron font-bold text-xs tracking-wider transition-all duration-300 ${apiKey
                   ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10'
                   : 'border-amber-500/20 bg-amber-500/5 text-amber-400 hover:bg-amber-500/10 animate-pulse'
-              }`}
+                }`}
             >
               <Key className="h-4 w-4 shrink-0" />
               {apiKey ? 'GEMINI API KEY ACTIVE' : 'SET GEMINI API KEY'}
@@ -269,7 +295,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
                   BioForm AI uses the Google Gemini 2.5 Flash model to audit your athletic movement. Provide your personal API key (stored locally inside your browser cache).
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowKeyModal(false)}
                 className="text-slate-500 hover:text-slate-300 text-xs font-semibold"
               >
@@ -297,9 +323,9 @@ ${JSON.stringify(trackingHistory, null, 2)}
               <Info className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
               <div>
                 Don't have a key? You can generate a free-tier key in less than a minute at the{' '}
-                <a 
-                  href="https://aistudio.google.com/" 
-                  target="_blank" 
+                <a
+                  href="https://aistudio.google.com/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-cyan-400 hover:underline font-semibold"
                 >
@@ -320,7 +346,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
               <h4 className="font-bold text-xs text-rose-400 font-orbitron uppercase tracking-wider">PIPELINE EXECUTION EXCEPTION</h4>
               <p className="text-xs text-slate-300 mt-1 leading-relaxed">{error}</p>
             </div>
-            <button 
+            <button
               onClick={() => setError(null)}
               className="text-slate-500 hover:text-slate-300 text-xs font-semibold"
             >
@@ -331,50 +357,67 @@ ${JSON.stringify(trackingHistory, null, 2)}
       )}
 
       {/* MAIN VIEW CONTENT CONTAINER */}
-      <main className="flex-1 flex flex-col justify-center items-center">
-        {view === 'capture' && (
-          <PoseTracker 
-            onAnalysisComplete={handleAnalysisComplete} 
-            onBackgroundTelemetryReady={handleBackgroundTelemetryReady}
-          />
-        )}
+      <main className="flex-1 flex flex-col justify-center items-center w-full">
+        {currentTab === 'judge' ? (
+          <>
+            {view === 'capture' && (
+              <PoseTracker
+                onAnalysisComplete={handleAnalysisComplete}
+                onBackgroundTelemetryReady={handleBackgroundTelemetryReady}
+              />
+            )}
 
-        {view === 'processing' && (
-          <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto gap-6">
-            {/* Spinning Neon Rings */}
-            <div className="relative w-24 h-24 flex items-center justify-center">
-              <div className="absolute inset-0 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
-              <div className="absolute inset-2 border-4 border-emerald-500/20 border-b-emerald-400 rounded-full animate-spin [animation-direction:reverse] [animation-duration:1.5s]" />
-              <Cpu className="h-8 w-8 text-cyan-400 animate-pulse" />
-            </div>
+            {view === 'processing' && (
+              <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto gap-6">
+                {/* Spinning Neon Rings */}
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                  <div className="absolute inset-0 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
+                  <div className="absolute inset-2 border-4 border-emerald-500/20 border-b-emerald-400 rounded-full animate-spin [animation-direction:reverse] [animation-duration:1.5s]" />
+                  <Cpu className="h-8 w-8 text-cyan-400 animate-pulse" />
+                </div>
 
-            <div className="flex flex-col gap-2">
-              <h3 className="font-orbitron font-extrabold text-lg text-slate-100 tracking-wider">
-                JUDGING IN PROGRESS
-              </h3>
-              <p className="text-slate-400 text-sm leading-relaxed h-12">
-                {processingPhase}
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-orbitron font-extrabold text-lg text-slate-100 tracking-wider">
+                    JUDGING IN PROGRESS
+                  </h3>
+                  <p className="text-slate-400 text-sm leading-relaxed h-12">
+                    {processingPhase}
+                  </p>
+                </div>
+
+                {/* Glowing progress line */}
+                <div className="w-64 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                  <div className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 w-1/3 rounded-full animate-[loading_2s_infinite_ease-in-out]" />
+                </div>
+
+                <p className="text-[10px] text-slate-500 font-orbitron tracking-widest uppercase">
+                  Average latency: ~3.5 seconds
+                </p>
+              </div>
+            )}
+
+            {view === 'results' && (
+              <Dashboard
+                analysisText={analysisResult}
+                trackingData={savedTrackingData}
+                onReset={handleReset}
+                isUploadedVideo={isUploadedVideo}
+              />
+            )}
+          </>
+        ) : (
+          <React.Suspense fallback={
+            <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto gap-6 animate-pulse">
+              <div className="relative w-16 h-16 flex items-center justify-center">
+                <div className="absolute inset-0 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
+              </div>
+              <p className="text-slate-400 font-orbitron text-xs tracking-widest uppercase mt-2">
+                INITIALIZING PACING CONSOLE...
               </p>
             </div>
-
-            {/* Glowing progress line */}
-            <div className="w-64 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-              <div className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 w-1/3 rounded-full animate-[loading_2s_infinite_ease-in-out]" />
-            </div>
-            
-            <p className="text-[10px] text-slate-500 font-orbitron tracking-widest uppercase">
-              Average latency: ~3.5 seconds
-            </p>
-          </div>
-        )}
-
-        {view === 'results' && (
-          <Dashboard
-            analysisText={analysisResult}
-            trackingData={savedTrackingData}
-            onReset={handleReset}
-            isUploadedVideo={isUploadedVideo}
-          />
+          }>
+            <Metronome />
+          </React.Suspense>
         )}
       </main>
 
