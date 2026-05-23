@@ -39,11 +39,27 @@ export default function PoseTracker({ onAnalysisComplete }) {
     rightKnee: 0,
     leftElbow: 0,
     rightElbow: 0,
-    kneeAsymmetry: 0
+    kneeAsymmetry: 0,
+    leftHip: 0,
+    rightHip: 0,
+    torsoTilt: 0
   });
 
   const recordingIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
+
+  const sourceModeRef = useRef(sourceMode);
+  const isRecordingRef = useRef(isRecording);
+  const historyRef = useRef([]);
+
+  // Keep refs updated with current state values to avoid closure traps in loops
+  useEffect(() => {
+    sourceModeRef.current = sourceMode;
+  }, [sourceMode]);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
 
   // Drawing helper
   const drawSkeleton = (landmarks) => {
@@ -157,7 +173,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
     try {
       const camera = new window.Camera(videoRef.current, {
         onFrame: async () => {
-          if (videoRef.current && cameraInstanceRef.current && sourceMode === 'webcam') {
+          if (videoRef.current && cameraInstanceRef.current && sourceModeRef.current === 'webcam') {
             await poseInstanceRef.current.send({ image: videoRef.current });
           }
         },
@@ -183,9 +199,11 @@ export default function PoseTracker({ onAnalysisComplete }) {
   // Animation frame loop for file video stream
   const processFileFrameLoop = async () => {
     const video = videoRef.current;
-    if (video && !video.paused && !video.ended && sourceMode === 'file') {
+    if (video && !video.paused && !video.ended && sourceModeRef.current === 'file') {
       try {
-        await poseInstanceRef.current.send({ image: video });
+        if (poseInstanceRef.current) {
+          await poseInstanceRef.current.send({ image: video });
+        }
       } catch (e) {
         console.error("Error processing video frame:", e);
       }
@@ -231,7 +249,10 @@ export default function PoseTracker({ onAnalysisComplete }) {
                 rightKnee: metrics.right_knee_angle,
                 leftElbow: metrics.left_elbow_angle,
                 rightElbow: metrics.right_elbow_angle,
-                kneeAsymmetry: metrics.knee_asymmetry_delta
+                kneeAsymmetry: metrics.knee_asymmetry_delta,
+                leftHip: metrics.left_hip_angle,
+                rightHip: metrics.right_hip_angle,
+                torsoTilt: metrics.torso_tilt_angle
               });
             }
             drawSkeleton(results.poseLandmarks);
@@ -296,7 +317,8 @@ export default function PoseTracker({ onAnalysisComplete }) {
 
     const handlePlay = () => {
       setIsPlaying(true);
-      if (sourceMode === 'file') {
+      if (sourceModeRef.current === 'file') {
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
         requestRef.current = requestAnimationFrame(processFileFrameLoop);
       }
     };
@@ -311,7 +333,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       
       // Auto submit if recording file reaches the end
-      if (isRecording && sourceMode === 'file') {
+      if (isRecordingRef.current && sourceModeRef.current === 'file') {
         stopRecording();
       }
     };
@@ -325,7 +347,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [sourceMode, isRecording, uploadedFileUrl]);
+  }, [uploadedFileUrl]);
 
   // Make canvas responsive
   useEffect(() => {
@@ -364,6 +386,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
     setUploadedFileName(file.name);
     setIsRecording(false);
     setHistory([]);
+    historyRef.current = [];
     
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -377,11 +400,12 @@ export default function PoseTracker({ onAnalysisComplete }) {
     
     setIsRecording(true);
     setHistory([]);
+    historyRef.current = [];
     setRecordingSeconds(0);
     
     let startTime = Date.now();
     const tempHistory = [];
-
+    
     // If file mode, play the video from the beginning
     if (sourceMode === 'file' && videoRef.current) {
       videoRef.current.currentTime = 0;
@@ -407,6 +431,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
         const frameMetrics = extractMetrics(landmarks, elapsedMs);
         if (frameMetrics) {
           tempHistory.push(frameMetrics);
+          historyRef.current = [...tempHistory];
           setHistory([...tempHistory]);
         }
       }
@@ -428,15 +453,16 @@ export default function PoseTracker({ onAnalysisComplete }) {
       timerIntervalRef.current = null;
     }
 
-    if (sourceMode === 'file' && videoRef.current) {
+    if (sourceModeRef.current === 'file' && videoRef.current) {
       videoRef.current.pause();
       setIsPlaying(false);
     }
     
     setIsRecording(false);
     
-    if (history.length > 0) {
-      onAnalysisComplete(history);
+    const finalHistory = historyRef.current;
+    if (finalHistory.length > 0) {
+      onAnalysisComplete(finalHistory);
     } else {
       alert("No movement data was captured. Ensure your body is fully visible in the camera frame and try again.");
     }
@@ -683,6 +709,30 @@ export default function PoseTracker({ onAnalysisComplete }) {
                   <div className="text-xs text-slate-500 font-medium">RIGHT</div>
                   <div className="text-xl font-orbitron font-bold text-emerald-400">{liveMetrics.rightElbow}°</div>
                 </div>
+              </div>
+            </div>
+
+            {/* Hips */}
+            <div>
+              <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Hip Flexion (Shoulder-Hip-Knee)</span>
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
+                  <div className="text-xs text-slate-500 font-medium">LEFT</div>
+                  <div className="text-xl font-orbitron font-bold text-amber-400">{liveMetrics.leftHip}°</div>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
+                  <div className="text-xs text-slate-500 font-medium">RIGHT</div>
+                  <div className="text-xl font-orbitron font-bold text-amber-400">{liveMetrics.rightHip}°</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Torso Lean */}
+            <div>
+              <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Torso Tilt (vs. Vertical)</span>
+              <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3 flex justify-between items-center">
+                <span className="text-xs text-slate-500 font-medium">Lean Angle:</span>
+                <span className="text-lg font-orbitron font-bold text-cyan-400">{liveMetrics.torsoTilt}°</span>
               </div>
             </div>
 
