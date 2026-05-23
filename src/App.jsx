@@ -52,6 +52,7 @@ export default function App() {
 
   // Handler for analyzing tracking history
   const handleAnalysisComplete = async (trackingHistory, sourceMode) => {
+    console.log(`[BioForm API] Analysis complete. Source: ${sourceMode}, Frames captured: ${trackingHistory.length}`);
     setIsUploadedVideo(sourceMode === 'file');
     setError(null);
     setView('processing');

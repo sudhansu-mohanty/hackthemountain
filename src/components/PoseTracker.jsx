@@ -433,17 +433,35 @@ export default function PoseTracker({ onAnalysisComplete }) {
     setAnalysisProgress(0);
     setRecordingSeconds(0);
 
-    // 3. Create a background offscreen video element to run the fast scan
+    // 3. Create a background video element to run the fast scan, appended to the DOM to prevent browser decoder throttling
     const bgVideo = document.createElement('video');
     bgVideo.src = uploadedFileUrl;
     bgVideo.muted = true;
     bgVideo.playsInline = true;
+    bgVideo.preload = "auto";
+    bgVideo.style.position = 'absolute';
+    bgVideo.style.width = '1px';
+    bgVideo.style.height = '1px';
+    bgVideo.style.opacity = '0.01';
+    bgVideo.style.pointerEvents = 'none';
+    bgVideo.style.top = '0';
+    bgVideo.style.left = '0';
+    document.body.appendChild(bgVideo); // Attach to DOM to keep decoder active
+
     activeAnalysisVideoRef.current = bgVideo; // Set ref for timestamp matching in onResults
 
     await new Promise((resolve) => {
-      bgVideo.onloadedmetadata = () => {
+      if (bgVideo.duration) {
         resolve();
-      };
+      } else {
+        const checkMeta = () => {
+          bgVideo.removeEventListener('loadedmetadata', checkMeta);
+          bgVideo.removeEventListener('loadeddata', checkMeta);
+          resolve();
+        };
+        bgVideo.addEventListener('loadedmetadata', checkMeta);
+        bgVideo.addEventListener('loadeddata', checkMeta);
+      }
       bgVideo.load();
     });
 
@@ -479,8 +497,11 @@ export default function PoseTracker({ onAnalysisComplete }) {
       console.error("Analysis loop error:", err);
     }
 
-    // Clean up background video reference
+    // Clean up background video reference and remove from DOM
     activeAnalysisVideoRef.current = null;
+    if (bgVideo.parentNode) {
+      bgVideo.parentNode.removeChild(bgVideo);
+    }
     stopRecording();
   };
 
