@@ -26,6 +26,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
   const [isRecording, setIsRecording] = useState(false);
   const [history, setHistory] = useState([]);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
 
   // Video source mode: 'webcam' | 'file'
   const [sourceMode, setSourceMode] = useState('webcam');
@@ -51,6 +52,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
   const sourceModeRef = useRef(sourceMode);
   const isRecordingRef = useRef(isRecording);
   const historyRef = useRef([]);
+  const lastProcessedTimeRef = useRef(-200);
 
   // Keep refs updated with current state values to avoid closure traps in loops
   useEffect(() => {
@@ -196,16 +198,22 @@ export default function PoseTracker({ onAnalysisComplete }) {
     }
   };
 
-  // Animation frame loop for file video stream
+  // Animation frame loop for file video stream - optimized to skip intermediate frames
   const processFileFrameLoop = async () => {
     const video = videoRef.current;
-    if (video && !video.paused && !video.ended && sourceModeRef.current === 'file') {
-      try {
-        if (poseInstanceRef.current) {
-          await poseInstanceRef.current.send({ image: video });
+    if (video && !video.paused && !video.ended && sourceModeRef.current === 'file' && !isRecordingRef.current) {
+      const currentTimeMs = Math.round(video.currentTime * 1000);
+      
+      // Only invoke BlazePose CNN if video currentTime has advanced by at least 200ms
+      if (currentTimeMs - lastProcessedTimeRef.current >= 200) {
+        lastProcessedTimeRef.current = currentTimeMs;
+        try {
+          if (poseInstanceRef.current) {
+            await poseInstanceRef.current.send({ image: video });
+          }
+        } catch (e) {
+          console.error("Error processing video frame:", e);
         }
-      } catch (e) {
-        console.error("Error processing video frame:", e);
       }
       requestRef.current = requestAnimationFrame(processFileFrameLoop);
     }
@@ -412,32 +420,68 @@ export default function PoseTracker({ onAnalysisComplete }) {
     }
   };
 
+  const analyzeVideoFile = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    setIsRecording(true);
+    isRecordingRef.current = true;
+    setHistory([]);
+    historyRef.current = [];
+    setAnalysisProgress(0);
+    setRecordingSeconds(0);
+
+    const duration = video.duration || 10;
+    let currentTime = 0;
+
+    // Helper promise to seek and process each frame programmatically
+    const seekAndProcessFrame = (time) => {
+      return new Promise((resolve) => {
+        const onSeeked = async () => {
+          video.removeEventListener('seeked', onSeeked);
+          if (poseInstanceRef.current) {
+            try {
+              await poseInstanceRef.current.send({ image: video });
+            } catch (err) {
+              console.error("Frame processing error during seek:", err);
+            }
+          }
+          resolve();
+        };
+        video.addEventListener('seeked', onSeeked);
+        video.currentTime = time;
+      });
+    };
+
+    try {
+      while (currentTime <= duration && isRecordingRef.current) {
+        await seekAndProcessFrame(currentTime);
+        setAnalysisProgress(Math.round((currentTime / duration) * 100));
+        currentTime += 0.2; // Seek at 200ms (5 FPS) intervals
+      }
+    } catch (err) {
+      console.error("Analysis loop error:", err);
+    }
+
+    stopRecording();
+  };
+
   const startRecording = () => {
     if (isRecording) return;
     
+    if (sourceMode === 'file') {
+      analyzeVideoFile();
+      return;
+    }
+
     setIsRecording(true);
     setHistory([]);
     historyRef.current = [];
+    lastProcessedTimeRef.current = -200; // Reset last processed video frame timestamp
     setRecordingSeconds(0);
     
     let startTime = Date.now();
     const tempHistory = [];
-    
-    // If file mode, play the video from the beginning
-    if (sourceMode === 'file' && videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play()
-        .then(() => {
-          setIsPlaying(true);
-          // Set start time relative to playback start
-          startTime = Date.now();
-        })
-        .catch(err => {
-          console.error("Playback failed", err);
-          setIsRecording(false);
-          return;
-        });
-    }
 
     // Slice frames every 200ms (5 FPS) - Only run wall-clock interval for webcam
     if (sourceMode === 'webcam') {
@@ -463,6 +507,10 @@ export default function PoseTracker({ onAnalysisComplete }) {
   };
 
   const stopRecording = () => {
+    if (!isRecordingRef.current) return;
+    setIsRecording(false);
+    isRecordingRef.current = false;
+
     if (recordingIntervalRef.current) {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
@@ -474,6 +522,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
 
     if (sourceModeRef.current === 'file' && videoRef.current) {
       videoRef.current.pause();
+      videoRef.current.playbackRate = 1.0; // Reset playback rate to normal
       setIsPlaying(false);
     }
     
@@ -598,13 +647,44 @@ export default function PoseTracker({ onAnalysisComplete }) {
 
           {/* Live Recording Pulse */}
           {isRecording && (
-            <div className="absolute top-4 left-4 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md border border-red-500/30 px-3 py-1.5 rounded-full z-10">
-              <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-xs font-orbitron font-semibold text-red-400 tracking-wider">
-                {sourceMode === 'file' ? 'ANALYZING PLAYBACK' : 'RECORDING'} {recordingSeconds}s
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 px-3 py-1.5 rounded-full z-10">
+              <span className="w-2.5 h-2.5 bg-cyan-500 rounded-full animate-pulse" />
+              <span className="text-xs font-orbitron font-semibold text-cyan-400 tracking-wider">
+                {sourceMode === 'file' ? `ANALYZING VIDEO: ${analysisProgress}%` : `RECORDING ${recordingSeconds}s`}
               </span>
             </div>
           )}
+          
+          {/* High-speed analysis scanner overlay */}
+          {sourceMode === 'file' && isRecording && (
+            <div className="absolute inset-0 bg-slate-950/40 pointer-events-none z-20 flex flex-col justify-end p-6">
+              {/* Scanline element */}
+              <div className="absolute inset-x-0 h-0.5 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)] animate-[scan_1.5s_infinite_ease-in-out]" />
+              
+              {/* Scanner Progress block */}
+              <div className="bg-slate-950/90 backdrop-blur border border-slate-800 p-4 rounded-xl flex flex-col gap-2 shadow-2xl">
+                <div className="flex justify-between text-[10px] font-orbitron font-bold text-slate-300 tracking-wider">
+                  <span>HIGH-SPEED SCANNING:</span>
+                  <span className="text-cyan-400">{analysisProgress}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800/80">
+                  <div 
+                    className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-100"
+                    style={{ width: `${analysisProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Skeleton Scanning Keyframes */}
+          <style>{`
+            @keyframes scan {
+              0% { top: 0%; opacity: 0.3; }
+              50% { top: 100%; opacity: 1; }
+              100% { top: 0%; opacity: 0.3; }
+            }
+          `}</style>
           
           {/* Skeleton Tracking Status */}
           {!modelLoading && !error && (sourceMode === 'webcam' || uploadedFileUrl) && (
