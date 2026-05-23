@@ -688,11 +688,15 @@ export default function PoseTracker({ onAnalysisComplete }) {
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
                   <div className="text-xs text-slate-500 font-medium">LEFT</div>
-                  <div className="text-xl font-orbitron font-bold text-cyan-400">{liveMetrics.leftKnee}°</div>
+                  <div className="text-xl font-orbitron font-bold text-cyan-400">
+                    {liveMetrics.leftKnee !== null ? `${liveMetrics.leftKnee}°` : 'N/A'}
+                  </div>
                 </div>
                 <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
                   <div className="text-xs text-slate-500 font-medium">RIGHT</div>
-                  <div className="text-xl font-orbitron font-bold text-cyan-400">{liveMetrics.rightKnee}°</div>
+                  <div className="text-xl font-orbitron font-bold text-cyan-400">
+                    {liveMetrics.rightKnee !== null ? `${liveMetrics.rightKnee}°` : 'N/A'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -703,11 +707,15 @@ export default function PoseTracker({ onAnalysisComplete }) {
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
                   <div className="text-xs text-slate-500 font-medium">LEFT</div>
-                  <div className="text-xl font-orbitron font-bold text-emerald-400">{liveMetrics.leftElbow}°</div>
+                  <div className="text-xl font-orbitron font-bold text-emerald-400">
+                    {liveMetrics.leftElbow !== null ? `${liveMetrics.leftElbow}°` : 'N/A'}
+                  </div>
                 </div>
                 <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
                   <div className="text-xs text-slate-500 font-medium">RIGHT</div>
-                  <div className="text-xl font-orbitron font-bold text-emerald-400">{liveMetrics.rightElbow}°</div>
+                  <div className="text-xl font-orbitron font-bold text-emerald-400">
+                    {liveMetrics.rightElbow !== null ? `${liveMetrics.rightElbow}°` : 'N/A'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -718,11 +726,15 @@ export default function PoseTracker({ onAnalysisComplete }) {
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
                   <div className="text-xs text-slate-500 font-medium">LEFT</div>
-                  <div className="text-xl font-orbitron font-bold text-amber-400">{liveMetrics.leftHip}°</div>
+                  <div className="text-xl font-orbitron font-bold text-amber-400">
+                    {liveMetrics.leftHip !== null ? `${liveMetrics.leftHip}°` : 'N/A'}
+                  </div>
                 </div>
                 <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-2.5">
                   <div className="text-xs text-slate-500 font-medium">RIGHT</div>
-                  <div className="text-xl font-orbitron font-bold text-amber-400">{liveMetrics.rightHip}°</div>
+                  <div className="text-xl font-orbitron font-bold text-amber-400">
+                    {liveMetrics.rightHip !== null ? `${liveMetrics.rightHip}°` : 'N/A'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -732,7 +744,9 @@ export default function PoseTracker({ onAnalysisComplete }) {
               <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Torso Tilt (vs. Vertical)</span>
               <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3 flex justify-between items-center">
                 <span className="text-xs text-slate-500 font-medium">Lean Angle:</span>
-                <span className="text-lg font-orbitron font-bold text-cyan-400">{liveMetrics.torsoTilt}°</span>
+                <span className="text-lg font-orbitron font-bold text-cyan-400">
+                  {liveMetrics.torsoTilt !== null ? `${liveMetrics.torsoTilt}°` : 'N/A'}
+                </span>
               </div>
             </div>
 
@@ -740,11 +754,11 @@ export default function PoseTracker({ onAnalysisComplete }) {
             <div className="border-t border-slate-800/60 pt-3">
               <span className="text-xs text-slate-400 uppercase tracking-widest block mb-1">Knee Asymmetry Delta</span>
               <div className={`bg-slate-950/60 border rounded-lg p-3 flex justify-between items-center ${
-                liveMetrics.kneeAsymmetry > 10 ? 'border-amber-500/40 text-amber-400' : 'border-slate-800 text-slate-300'
+                liveMetrics.kneeAsymmetry !== null && liveMetrics.kneeAsymmetry > 10 ? 'border-amber-500/40 text-amber-400' : 'border-slate-800 text-slate-300'
               }`}>
                 <span className="text-xs font-semibold">Absolute Difference:</span>
                 <span className="text-lg font-orbitron font-bold">
-                  {liveMetrics.kneeAsymmetry}°
+                  {liveMetrics.kneeAsymmetry !== null ? `${liveMetrics.kneeAsymmetry}°` : 'N/A'}
                 </span>
               </div>
             </div>

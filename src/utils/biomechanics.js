@@ -51,6 +51,7 @@ export function calculateAngle(A, B, C) {
 
 /**
  * Extracts and calculates biomechanical metrics from a set of MediaPipe pose landmarks.
+ * If any of the target points are not visible/detected, reports null to prevent false judging.
  * 
  * @param {Array} landmarks - MediaPipe pose landmarks (length 33)
  * @param {number} timestampMs - Timestamp of the frame in milliseconds
@@ -85,47 +86,82 @@ export function extractMetrics(landmarks, timestampMs) {
   const lFootIndex = landmarks[31];
   const rFootIndex = landmarks[32];
 
-  // Calculate joint angles
-  const leftKneeAngle = calculateAngle(lHip, lKnee, lAnkle);
-  const rightKneeAngle = calculateAngle(rHip, rKnee, rAnkle);
-  const leftElbowAngle = calculateAngle(lShoulder, lElbow, lWrist);
-  const rightElbowAngle = calculateAngle(rShoulder, rElbow, rWrist);
+  // A helper function to check if a landmark exists and has sufficient visibility (>= 0.5)
+  const isVisible = (pt) => pt && (pt.visibility || 0) >= 0.5;
 
-  // New Joint Parameters:
-  // Hip Flexion (Shoulder-Hip-Knee)
-  const leftHipAngle = calculateAngle(lShoulder, lHip, lKnee);
-  const rightHipAngle = calculateAngle(rShoulder, rHip, rKnee);
+  // Knees Flexion (Hip -> Knee -> Ankle)
+  const leftKneeAngle = (isVisible(lHip) && isVisible(lKnee) && isVisible(lAnkle))
+    ? calculateAngle(lHip, lKnee, lAnkle)
+    : null;
+  const rightKneeAngle = (isVisible(rHip) && isVisible(rKnee) && isVisible(rAnkle))
+    ? calculateAngle(rHip, rKnee, rAnkle)
+    : null;
+  const kneeAsymmetryDelta = (leftKneeAngle !== null && rightKneeAngle !== null)
+    ? parseFloat(Math.abs(leftKneeAngle - rightKneeAngle).toFixed(1))
+    : null;
 
-  // Shoulder Abduction (Hip-Shoulder-Elbow)
-  const leftShoulderAngle = calculateAngle(lHip, lShoulder, lElbow);
-  const rightShoulderAngle = calculateAngle(rHip, rShoulder, rElbow);
+  // Elbows Flexion (Shoulder -> Elbow -> Wrist)
+  const leftElbowAngle = (isVisible(lShoulder) && isVisible(lElbow) && isVisible(lWrist))
+    ? calculateAngle(lShoulder, lElbow, lWrist)
+    : null;
+  const rightElbowAngle = (isVisible(rShoulder) && isVisible(rElbow) && isVisible(rWrist))
+    ? calculateAngle(rShoulder, rElbow, rWrist)
+    : null;
+  const elbowAsymmetryDelta = (leftElbowAngle !== null && rightElbowAngle !== null)
+    ? parseFloat(Math.abs(leftElbowAngle - rightElbowAngle).toFixed(1))
+    : null;
 
-  // Ankle Dorsiflexion (Knee-Ankle-FootIndex)
-  const leftAnkleAngle = calculateAngle(lKnee, lAnkle, lFootIndex);
-  const rightAnkleAngle = calculateAngle(rKnee, rAnkle, rFootIndex);
+  // Hips Flexion (Shoulder -> Hip -> Knee)
+  const leftHipAngle = (isVisible(lShoulder) && isVisible(lHip) && isVisible(lKnee))
+    ? calculateAngle(lShoulder, lHip, lKnee)
+    : null;
+  const rightHipAngle = (isVisible(rShoulder) && isVisible(rHip) && isVisible(rKnee))
+    ? calculateAngle(rShoulder, rHip, rKnee)
+    : null;
+  const hipAsymmetryDelta = (leftHipAngle !== null && rightHipAngle !== null)
+    ? parseFloat(Math.abs(leftHipAngle - rightHipAngle).toFixed(1))
+    : null;
 
-  // Torso Lean/Tilt (Torso midline compared to a vertical axis)
-  const midShoulder = {
-    x: (lShoulder.x + rShoulder.x) / 2,
-    y: (lShoulder.y + rShoulder.y) / 2
-  };
-  const midHip = {
-    x: (lHip.x + rHip.x) / 2,
-    y: (lHip.y + rHip.y) / 2
-  };
-  // Vertical axis vector going straight up from the midHip vertex
-  const verticalTop = {
-    x: midHip.x,
-    y: midHip.y - 1
-  };
-  const torsoTilt = calculateAngle(midShoulder, midHip, verticalTop);
+  // Shoulders Abduction (Hip -> Shoulder -> Elbow)
+  const leftShoulderAngle = (isVisible(lHip) && isVisible(lShoulder) && isVisible(lElbow))
+    ? calculateAngle(lHip, lShoulder, lElbow)
+    : null;
+  const rightShoulderAngle = (isVisible(rHip) && isVisible(rShoulder) && isVisible(rElbow))
+    ? calculateAngle(rHip, rShoulder, rElbow)
+    : null;
+  const shoulderAsymmetryDelta = (leftShoulderAngle !== null && rightShoulderAngle !== null)
+    ? parseFloat(Math.abs(leftShoulderAngle - rightShoulderAngle).toFixed(1))
+    : null;
 
-  // Calculate symmetry deltas (absolute difference)
-  const kneeAsymmetryDelta = parseFloat(Math.abs(leftKneeAngle - rightKneeAngle).toFixed(1));
-  const elbowAsymmetryDelta = parseFloat(Math.abs(leftElbowAngle - rightElbowAngle).toFixed(1));
-  const hipAsymmetryDelta = parseFloat(Math.abs(leftHipAngle - rightHipAngle).toFixed(1));
-  const shoulderAsymmetryDelta = parseFloat(Math.abs(leftShoulderAngle - rightShoulderAngle).toFixed(1));
-  const ankleAsymmetryDelta = parseFloat(Math.abs(leftAnkleAngle - rightAnkleAngle).toFixed(1));
+  // Ankles Flexion/Dorsiflexion (Knee -> Ankle -> FootIndex)
+  const leftAnkleAngle = (isVisible(lKnee) && isVisible(lAnkle) && isVisible(lFootIndex))
+    ? calculateAngle(lKnee, lAnkle, lFootIndex)
+    : null;
+  const rightAnkleAngle = (isVisible(rKnee) && isVisible(rAnkle) && isVisible(rFootIndex))
+    ? calculateAngle(rKnee, rAnkle, rFootIndex)
+    : null;
+  const ankleAsymmetryDelta = (leftAnkleAngle !== null && rightAnkleAngle !== null)
+    ? parseFloat(Math.abs(leftAnkleAngle - rightAnkleAngle).toFixed(1))
+    : null;
+
+  // Torso Tilt (Spine inclination compared to vertical line)
+  const torsoTilt = (isVisible(lShoulder) && isVisible(rShoulder) && isVisible(lHip) && isVisible(rHip))
+    ? (() => {
+        const midShoulder = {
+          x: (lShoulder.x + rShoulder.x) / 2,
+          y: (lShoulder.y + rShoulder.y) / 2
+        };
+        const midHip = {
+          x: (lHip.x + rHip.x) / 2,
+          y: (lHip.y + rHip.y) / 2
+        };
+        const verticalTop = {
+          x: midHip.x,
+          y: midHip.y - 1
+        };
+        return calculateAngle(midShoulder, midHip, verticalTop);
+      })()
+    : null;
 
   return {
     timestamp_ms: Math.round(timestampMs),

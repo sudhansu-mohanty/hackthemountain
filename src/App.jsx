@@ -73,6 +73,7 @@ export default function App() {
         "Your report must be structured, professional, and clear. You must avoid raw data dumps, computer-science terminology, and listing long lists of raw timestamps (like [9983, 10582...]). Write in a tone that is encouraging yet highly precise for an athlete. " +
         "You are strictly forbidden from using double asterisks '**' (bold markdown markers) anywhere in your response. Instead, write in clear plain text or standard bullet lists. " +
         "You must analyze these kinematic parameters from the JSON: 1. Joint angles and range of motion (knees, elbows, hips, shoulders, ankles), 2. Postural trunk alignment (torso tilt angle), and 3. Symmetry balance deltas across all joints. " +
+        "CRITICAL ACCURACY REQUIREMENT: If a joint metric value is null in the JSON dataset (e.g. left_knee_angle is null, or knee_asymmetry_delta is null), this means that joint was NOT visible in the camera frame during those frames. You are strictly forbidden from guessing its state or declaring it had excellent symmetry or form. Instead, you MUST explicitly state in the audit report that the joint (e.g., knees, ankles, hips) was obstructed or out of the camera view, and instruct the client to adjust their camera angle to capture their full body. " +
         "Formatting Constraints: " +
         "- You MUST output 'SCORE: [number]/100' on the very first line of your response. " +
         "- Follow it immediately with two markdown sections using the exact headers '### ⚖️ Symmetry & Balance' and '### 📉 Form Corrections'. " +
