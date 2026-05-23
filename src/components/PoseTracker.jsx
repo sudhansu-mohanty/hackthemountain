@@ -53,6 +53,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
   const isRecordingRef = useRef(isRecording);
   const historyRef = useRef([]);
   const lastProcessedTimeRef = useRef(-200);
+  const activeAnalysisVideoRef = useRef(null);
 
   // Keep refs updated with current state values to avoid closure traps in loops
   useEffect(() => {
@@ -265,20 +266,14 @@ export default function PoseTracker({ onAnalysisComplete }) {
             }
             drawSkeleton(results.poseLandmarks);
 
-            // Deterministic sampling for video file uploads based on playback time
-            const video = videoRef.current;
-            if (video && sourceModeRef.current === 'file' && isRecordingRef.current) {
-              const currentTimeMs = Math.round(video.currentTime * 1000);
-              const lastCapturedTime = historyRef.current.length > 0
-                ? historyRef.current[historyRef.current.length - 1].timestamp_ms
-                : -200;
-
-              if (currentTimeMs - lastCapturedTime >= 200) {
-                const frameMetrics = extractMetrics(results.poseLandmarks, currentTimeMs);
-                if (frameMetrics) {
-                  historyRef.current.push(frameMetrics);
-                  setHistory([...historyRef.current]);
-                }
+            // Deterministic sampling for video file uploads based on background seeking
+            const analysisVideo = activeAnalysisVideoRef.current || videoRef.current;
+            if (analysisVideo && sourceModeRef.current === 'file' && isRecordingRef.current) {
+              const currentTimeMs = Math.round(analysisVideo.currentTime * 1000);
+              const frameMetrics = extractMetrics(results.poseLandmarks, currentTimeMs);
+              if (frameMetrics) {
+                historyRef.current.push(frameMetrics);
+                setHistory([...historyRef.current]);
               }
             }
           }
@@ -424,6 +419,13 @@ export default function PoseTracker({ onAnalysisComplete }) {
     const video = videoRef.current;
     if (!video) return;
 
+    // 1. Play the main visual video tag at normal pace (1.0x) so the user can watch it
+    video.currentTime = 0;
+    video.playbackRate = 1.0;
+    video.play().catch(e => console.error("Visual video playback failed:", e));
+    setIsPlaying(true);
+
+    // 2. Configure recording states
     setIsRecording(true);
     isRecordingRef.current = true;
     setHistory([]);
@@ -431,25 +433,39 @@ export default function PoseTracker({ onAnalysisComplete }) {
     setAnalysisProgress(0);
     setRecordingSeconds(0);
 
-    const duration = video.duration || 10;
+    // 3. Create a background offscreen video element to run the fast scan
+    const bgVideo = document.createElement('video');
+    bgVideo.src = uploadedFileUrl;
+    bgVideo.muted = true;
+    bgVideo.playsInline = true;
+    activeAnalysisVideoRef.current = bgVideo; // Set ref for timestamp matching in onResults
+
+    await new Promise((resolve) => {
+      bgVideo.onloadedmetadata = () => {
+        resolve();
+      };
+      bgVideo.load();
+    });
+
+    const duration = bgVideo.duration || 10;
     let currentTime = 0;
 
-    // Helper promise to seek and process each frame programmatically
+    // Helper promise to seek and process each frame programmatically on the offscreen video
     const seekAndProcessFrame = (time) => {
       return new Promise((resolve) => {
         const onSeeked = async () => {
-          video.removeEventListener('seeked', onSeeked);
+          bgVideo.removeEventListener('seeked', onSeeked);
           if (poseInstanceRef.current) {
             try {
-              await poseInstanceRef.current.send({ image: video });
+              await poseInstanceRef.current.send({ image: bgVideo });
             } catch (err) {
               console.error("Frame processing error during seek:", err);
             }
           }
           resolve();
         };
-        video.addEventListener('seeked', onSeeked);
-        video.currentTime = time;
+        bgVideo.addEventListener('seeked', onSeeked);
+        bgVideo.currentTime = time;
       });
     };
 
@@ -463,6 +479,8 @@ export default function PoseTracker({ onAnalysisComplete }) {
       console.error("Analysis loop error:", err);
     }
 
+    // Clean up background video reference
+    activeAnalysisVideoRef.current = null;
     stopRecording();
   };
 

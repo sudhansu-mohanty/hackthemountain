@@ -183,3 +183,67 @@ export function extractMetrics(landmarks, timestampMs) {
     torso_tilt_angle: torsoTilt
   };
 }
+
+/**
+ * Calculates session-wide summary metrics (ROM, RMS Asymmetry, Mean Angular Velocity)
+ * based on the collected time-series tracking history.
+ * 
+ * @param {Array} history - Session tracking history array
+ * @returns {Object|null} Summary metrics
+ */
+export function calculateSessionSummary(history) {
+  if (!history || history.length === 0) return null;
+
+  // Range of Motion (ROM)
+  const getROM = (key) => {
+    const values = history.map(h => h[key]).filter(v => v !== null);
+    if (values.length === 0) return null;
+    return parseFloat((Math.max(...values) - Math.min(...values)).toFixed(1));
+  };
+
+  // RMS of Asymmetry
+  const getRMS = (key) => {
+    const values = history.map(h => h[key]).filter(v => v !== null);
+    if (values.length === 0) return null;
+    const squaredSum = values.reduce((sum, val) => sum + val * val, 0);
+    return parseFloat(Math.sqrt(squaredSum / values.length).toFixed(1));
+  };
+
+  // Average Angular Velocity (deg/sec)
+  const getMeanVelocity = (key) => {
+    let totalDelta = 0;
+    let totalTimeSec = 0;
+    
+    for (let i = 1; i < history.length; i++) {
+      const prev = history[i - 1];
+      const curr = history[i];
+      if (prev[key] !== null && curr[key] !== null) {
+        const dt = (curr.timestamp_ms - prev.timestamp_ms) / 1000;
+        if (dt > 0) {
+          totalDelta += Math.abs(curr[key] - prev[key]);
+          totalTimeSec += dt;
+        }
+      }
+    }
+    return totalTimeSec > 0 ? parseFloat((totalDelta / totalTimeSec).toFixed(1)) : null;
+  };
+
+  return {
+    left_knee_rom: getROM('left_knee_angle'),
+    right_knee_rom: getROM('right_knee_angle'),
+    knee_asymmetry_rms: getRMS('knee_asymmetry_delta'),
+    
+    left_elbow_rom: getROM('left_elbow_angle'),
+    right_elbow_rom: getROM('right_elbow_angle'),
+    elbow_asymmetry_rms: getRMS('elbow_asymmetry_delta'),
+    
+    left_hip_rom: getROM('left_hip_angle'),
+    right_hip_rom: getROM('right_hip_angle'),
+    hip_asymmetry_rms: getRMS('hip_asymmetry_delta'),
+    
+    left_knee_mean_velocity: getMeanVelocity('left_knee_angle'),
+    right_knee_mean_velocity: getMeanVelocity('right_knee_angle'),
+    left_elbow_mean_velocity: getMeanVelocity('left_elbow_angle'),
+    right_elbow_mean_velocity: getMeanVelocity('right_elbow_angle')
+  };
+}

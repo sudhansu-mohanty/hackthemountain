@@ -3,7 +3,7 @@ import { Key, AlertTriangle, Play, RefreshCw, Cpu, Activity, Info, CheckCircle2,
 import { GoogleGenAI } from '@google/genai';
 import PoseTracker from './components/PoseTracker';
 import Dashboard from './components/Dashboard';
-
+import { calculateSessionSummary } from './utils/biomechanics';
 export default function App() {
   const [view, setView] = useState('capture'); // 'capture' | 'processing' | 'results'
   const [apiKey, setApiKey] = useState(() => {
@@ -85,8 +85,15 @@ export default function App() {
         "- Within these sections, use standard bullet points. For emphasis, write the key take-away text in normal case or uppercase rather than using '**'. Summarize occurrences relative to the movement phase (e.g., 'primarily at deep flexion' or 'during initial extension'). " +
         "- You are forbidden from adding introductory or concluding conversational filler.";
 
-      const prompt = `Assess the kinematics of this joint movement session based on the telemetry dataset below. Analyze joint angles and range of motion (knees, elbows, hips, shoulders, ankles), postural lean (torso tilt), and symmetry balance. Note: You must not use any '**' markers in your response, and you must include the '=== CONDENSED ===' separator within each section to divide elaborated and condensed text:
+      // Calculate session kinematic summary metrics (hyperparameters)
+      const sessionSummary = calculateSessionSummary(trackingHistory);
 
+      const prompt = `Assess the kinematics of this joint movement session based on the summary metrics and detailed time-series telemetry dataset below. Analyze joint ranges of motion (ROM), symmetry root-mean-squares (RMS), joint angular velocities, postural lean (torso tilt), and symmetry balance. Note: You must not use any '**' markers in your response, and you must include the '=== CONDENSED ===' separator within each section to divide elaborated and condensed text:
+
+Session Kinematic Summary (Calculated Hyperparameters):
+${JSON.stringify(sessionSummary, null, 2)}
+
+Detailed Time-Series Telemetry:
 \`\`\`json
 ${JSON.stringify(trackingHistory, null, 2)}
 \`\`\``;
