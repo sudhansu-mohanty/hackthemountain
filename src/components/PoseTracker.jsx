@@ -12,7 +12,7 @@ const CONNECTIONS = [
   [24, 26], [26, 28]  // Right leg (Hip -> Knee -> Ankle)
 ];
 
-export default function PoseTracker({ onAnalysisComplete }) {
+export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryReady }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const poseInstanceRef = useRef(null);
@@ -502,7 +502,11 @@ export default function PoseTracker({ onAnalysisComplete }) {
     if (bgVideo.parentNode) {
       bgVideo.parentNode.removeChild(bgVideo);
     }
-    stopRecording();
+
+    // Trigger callback to initiate Gemini analysis in the background
+    if (isRecordingRef.current && onBackgroundTelemetryReady) {
+      onBackgroundTelemetryReady(historyRef.current);
+    }
   };
 
   const startRecording = () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Award, Activity, ShieldAlert, Heart, Calendar, ShieldCheck, CornerDownRight } from 'lucide-react';
+import { RefreshCw, Award, Activity, ShieldAlert, Heart, Calendar, ShieldCheck, ChevronRight } from 'lucide-react';
 
 export default function Dashboard({ analysisText, trackingData, onReset, isUploadedVideo = false }) {
   const [animatedScore, setAnimatedScore] = useState(0);
@@ -62,10 +62,10 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
 
   // Calculate qualitative rating
   const getRating = (s) => {
-    if (s >= 90) return { label: 'ELITE ATHLETE', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10', icon: ShieldCheck };
-    if (s >= 75) return { label: 'GOOD STANDING', color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10', icon: Award };
-    if (s >= 60) return { label: 'MODERATE DEVIATIONS', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10', icon: Activity };
-    return { label: 'CRITICAL AUDIT NEEDED', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10', icon: ShieldAlert };
+    if (s >= 90) return { label: 'EXCELLENT FORM', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10', icon: ShieldCheck };
+    if (s >= 75) return { label: 'STRONG STANDING', color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10', icon: Award };
+    if (s >= 60) return { label: 'MINOR VARIATIONS', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10', icon: Activity };
+    return { label: 'NEEDS CORRECTION', color: 'text-rose-400 border-rose-500/30 bg-rose-500/10', icon: ShieldAlert };
   };
 
   const rating = getRating(score);
@@ -90,7 +90,7 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
         const content = trimmed.substring(1).trim();
         return (
           <div key={idx} className="flex items-start gap-2.5 my-2.5 text-slate-300 text-sm pl-2">
-            <CornerDownRight className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
+            <ChevronRight className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
             <span>{content}</span>
           </div>
         );
@@ -218,22 +218,22 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
               </h3>
               <div className="grid grid-cols-2 gap-4 text-xs font-orbitron">
                 <div>
-                  <div className="text-slate-500">TOTAL FRAMES</div>
-                  <div className="text-base font-bold text-slate-200">{trackingData.length} snapshots</div>
+                  <div className="text-slate-500">TRACKED MOMENTS</div>
+                  <div className="text-base font-bold text-slate-200">{trackingData.length} checkpoints</div>
                 </div>
                 <div>
-                  <div className="text-slate-500">SAMPLE FREQ</div>
-                  <div className="text-base font-bold text-slate-200">5.0 Hz (200ms)</div>
+                  <div className="text-slate-500">CAPTURE STABILITY</div>
+                  <div className="text-base font-bold text-slate-200">High Precision</div>
                 </div>
                 <div>
-                  <div className="text-slate-500">ELAPSED TIME</div>
+                  <div className="text-slate-500">DURATION</div>
                   <div className="text-base font-bold text-slate-200">
-                    {((trackingData[trackingData.length - 1].timestamp_ms) / 1000).toFixed(2)}s
+                    {((trackingData[trackingData.length - 1].timestamp_ms) / 1000).toFixed(1)}s
                   </div>
                 </div>
                 <div>
-                  <div className="text-slate-500">CNN CLASSIFIER</div>
-                  <div className="text-base font-bold text-slate-200">BlazePose v1</div>
+                  <div className="text-slate-500">ANALYSIS ENGINE</div>
+                  <div className="text-base font-bold text-slate-200">BioForm Pose AI</div>
                 </div>
               </div>
             </div>
