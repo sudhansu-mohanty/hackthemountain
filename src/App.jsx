@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Key, AlertTriangle, Play, RefreshCw, Cpu, Activity, Info, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import PoseTracker from './components/PoseTracker';
@@ -15,6 +15,11 @@ export default function App() {
   const [analysisResult, setAnalysisResult] = useState('');
   const [savedTrackingData, setSavedTrackingData] = useState([]);
   const [isUploadedVideo, setIsUploadedVideo] = useState(false);
+
+  // Background prefetch refs and states
+  const prefetchPromiseRef = useRef(null);
+  const [prefetchedResult, setPrefetchedResult] = useState(null);
+  const [prefetchedError, setPrefetchedError] = useState(null);
 
   // Sync API Key to localStorage
   useEffect(() => {
@@ -50,12 +55,104 @@ export default function App() {
     return () => clearInterval(interval);
   }, [view]);
 
+  // System instruction and prompt helper to prevent discrepancy bugs
+  const systemInstruction = 
+    "You are an AI Sports Scientist and Biomechanics Coach. Your purpose is to ingest time-series JSON descriptions of joint movements and output a highly client-friendly, motivating, and action-oriented athletic performance audit. " +
+    "Your report must be structured, professional, and clear. You must avoid raw data dumps, computer-science terminology, and listing long lists of raw timestamps (like [9983, 10582...]). Write in a tone that is encouraging yet highly precise for an athlete. " +
+    "You are strictly forbidden from using double asterisks '**' (bold markdown markers) anywhere in your response. Instead, write in clear plain text or standard bullet lists. " +
+    "You must analyze these kinematic parameters from the JSON: 1. Joint angles and range of motion (knees, elbows, hips, shoulders, ankles), 2. Postural trunk alignment (torso tilt angle), and 3. Symmetry balance deltas across all joints. " +
+    "CRITICAL ACCURACY REQUIREMENT: If a joint metric value is null in the JSON dataset (e.g. left_knee_angle is null, or knee_asymmetry_delta is null), this means that joint was NOT visible in the camera frame during those frames. You are strictly forbidden from guessing its state or declaring it had excellent symmetry or form. Instead, you MUST explicitly state in the audit report that the joint (e.g., knees, ankles, hips) was obstructed or out of the camera view, and instruct the client to adjust their camera angle to capture their full body. " +
+    "Formatting Constraints: " +
+    "- You MUST output 'SCORE: [number]/100' on the very first line of your response. " +
+    "- Follow it immediately with two markdown sections using the exact headers '### ⚖️ Symmetry & Balance' and '### 📉 Form Corrections'. " +
+    "- Within each of these sections, you MUST output two versions of the critique separated by a line containing '=== CONDENSED ==='. " +
+    "  1. The first part (before '=== CONDENSED ===') is the ELABORATED version, containing detailed coaching feedback and analysis (around 3-4 descriptive sentences per bullet point). " +
+    "  2. The second part (after '=== CONDENSED ===') is the CONDENSED version, containing very short and concise bullet points (strictly 1 short sentence maximum per bullet point, e.g. 'Knee alignment was stable but ankles showed slight asymmetry.') summarizing the findings. " +
+    "- Within these sections, use standard bullet points. For emphasis, write the key take-away text in normal case or uppercase rather than using '**'. Summarize occurrences relative to the movement phase (e.g., 'primarily at deep flexion' or 'during initial extension'). " +
+    "- You are forbidden from adding introductory or concluding conversational filler.";
+
+  const getGeminiPrompt = (trackingHistory, sessionSummary) => {
+    return `Assess the kinematics of this joint movement session based on the summary metrics and detailed time-series telemetry dataset below. Analyze joint ranges of motion (ROM), symmetry root-mean-squares (RMS), joint angular velocities, postural lean (torso tilt), and symmetry balance. Note: You must not use any '**' markers in your response, and you must include the '=== CONDENSED ===' separator within each section to divide elaborated and condensed text:
+
+Session Kinematic Summary (Calculated Hyperparameters):
+${JSON.stringify(sessionSummary, null, 2)}
+
+Detailed Time-Series Telemetry:
+\`\`\`json
+${JSON.stringify(trackingHistory, null, 2)}
+\`\`\``;
+  };
+
+  // Pre-fetch Gemini assessment in the background as soon as telemetry is compiled
+  const handleBackgroundTelemetryReady = (trackingHistory) => {
+    console.log(`[BioForm API] Background telemetry ready. Triggering prefetched Gemini request. Frames: ${trackingHistory.length}`);
+    
+    const keyToUse = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
+    if (!keyToUse) return; // Will display warning on handleAnalysisComplete if missing
+
+    setPrefetchedResult(null);
+    setPrefetchedError(null);
+
+    const ai = new GoogleGenAI({ apiKey: keyToUse });
+    const sessionSummary = calculateSessionSummary(trackingHistory);
+    const prompt = getGeminiPrompt(trackingHistory, sessionSummary);
+
+    prefetchPromiseRef.current = ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        systemInstruction: systemInstruction,
+        temperature: 0.0
+      }
+    })
+    .then(response => {
+      if (!response || !response.text) {
+        throw new Error('No assessment received from the Gemini AI service.');
+      }
+      setPrefetchedResult(response.text);
+      return response.text;
+    })
+    .catch(err => {
+      console.error("Background prefetch error:", err);
+      const msg = err.message || 'An error occurred during background pre-fetching.';
+      setPrefetchedError(msg);
+      throw err;
+    });
+  };
+
   // Handler for analyzing tracking history
   const handleAnalysisComplete = async (trackingHistory, sourceMode) => {
     console.log(`[BioForm API] Analysis complete. Source: ${sourceMode}, Frames captured: ${trackingHistory.length}`);
     setIsUploadedVideo(sourceMode === 'file');
     setError(null);
     setView('processing');
+
+    // If prefetch promise is running or completed for uploaded file
+    if (sourceMode === 'file' && prefetchPromiseRef.current) {
+      try {
+        setProcessingPhase('Finalizing report...');
+        const resultText = await prefetchPromiseRef.current;
+        setAnalysisResult(resultText);
+        setSavedTrackingData(trackingHistory);
+        // Small delay for clean visual transition
+        setTimeout(() => {
+          setView('results');
+        }, 800);
+      } catch (err) {
+        console.error("Prefetch resolution error:", err);
+        let msg = err.message || 'An error occurred during analysis generation.';
+        if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
+          msg = 'Invalid Gemini API Key. Please click the settings icon in the top header to input a valid key.';
+        } else if (msg.includes('quota') || msg.includes('429')) {
+          msg = 'Gemini API free tier rate limit exceeded. Please wait a minute before starting another analysis.';
+        }
+        setError(msg);
+        setView('capture');
+      } finally {
+        prefetchPromiseRef.current = null;
+      }
+      return;
+    }
 
     const keyToUse = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
     
@@ -67,39 +164,11 @@ export default function App() {
     }
 
     try {
-      // 1. Initialize the Google Gen AI SDK
+      setProcessingPhase('Generating report...');
       const ai = new GoogleGenAI({ apiKey: keyToUse });
-
-      // 2. Formulate system instruction and user prompt
-      const systemInstruction = 
-        "You are an AI Sports Scientist and Biomechanics Coach. Your purpose is to ingest time-series JSON descriptions of joint movements and output a highly client-friendly, motivating, and action-oriented athletic performance audit. " +
-        "Your report must be structured, professional, and clear. You must avoid raw data dumps, computer-science terminology, and listing long lists of raw timestamps (like [9983, 10582...]). Write in a tone that is encouraging yet highly precise for an athlete. " +
-        "You are strictly forbidden from using double asterisks '**' (bold markdown markers) anywhere in your response. Instead, write in clear plain text or standard bullet lists. " +
-        "You must analyze these kinematic parameters from the JSON: 1. Joint angles and range of motion (knees, elbows, hips, shoulders, ankles), 2. Postural trunk alignment (torso tilt angle), and 3. Symmetry balance deltas across all joints. " +
-        "CRITICAL ACCURACY REQUIREMENT: If a joint metric value is null in the JSON dataset (e.g. left_knee_angle is null, or knee_asymmetry_delta is null), this means that joint was NOT visible in the camera frame during those frames. You are strictly forbidden from guessing its state or declaring it had excellent symmetry or form. Instead, you MUST explicitly state in the audit report that the joint (e.g., knees, ankles, hips) was obstructed or out of the camera view, and instruct the client to adjust their camera angle to capture their full body. " +
-        "Formatting Constraints: " +
-        "- You MUST output 'SCORE: [number]/100' on the very first line of your response. " +
-        "- Follow it immediately with two markdown sections using the exact headers '### ⚖️ Symmetry & Balance' and '### 📉 Form Corrections'. " +
-        "- Within each of these sections, you MUST output two versions of the critique separated by a line containing '=== CONDENSED ==='. " +
-        "  1. The first part (before '=== CONDENSED ===') is the ELABORATED version, containing detailed coaching feedback and analysis (around 3-4 descriptive sentences per bullet point). " +
-        "  2. The second part (after '=== CONDENSED ===') is the CONDENSED version, containing very short and concise bullet points (strictly 1 short sentence maximum per bullet point, e.g. 'Knee alignment was stable but ankles showed slight asymmetry.') summarizing the findings. " +
-        "- Within these sections, use standard bullet points. For emphasis, write the key take-away text in normal case or uppercase rather than using '**'. Summarize occurrences relative to the movement phase (e.g., 'primarily at deep flexion' or 'during initial extension'). " +
-        "- You are forbidden from adding introductory or concluding conversational filler.";
-
-      // Calculate session kinematic summary metrics (hyperparameters)
       const sessionSummary = calculateSessionSummary(trackingHistory);
+      const prompt = getGeminiPrompt(trackingHistory, sessionSummary);
 
-      const prompt = `Assess the kinematics of this joint movement session based on the summary metrics and detailed time-series telemetry dataset below. Analyze joint ranges of motion (ROM), symmetry root-mean-squares (RMS), joint angular velocities, postural lean (torso tilt), and symmetry balance. Note: You must not use any '**' markers in your response, and you must include the '=== CONDENSED ===' separator within each section to divide elaborated and condensed text:
-
-Session Kinematic Summary (Calculated Hyperparameters):
-${JSON.stringify(sessionSummary, null, 2)}
-
-Detailed Time-Series Telemetry:
-\`\`\`json
-${JSON.stringify(trackingHistory, null, 2)}
-\`\`\``;
-
-      // 3. Asynchronously fetch the LLM critique
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -134,6 +203,9 @@ ${JSON.stringify(trackingHistory, null, 2)}
     setAnalysisResult('');
     setSavedTrackingData([]);
     setError(null);
+    setPrefetchedResult(null);
+    setPrefetchedError(null);
+    prefetchPromiseRef.current = null;
     setView('capture');
   };
 
@@ -261,7 +333,10 @@ ${JSON.stringify(trackingHistory, null, 2)}
       {/* MAIN VIEW CONTENT CONTAINER */}
       <main className="flex-1 flex flex-col justify-center items-center">
         {view === 'capture' && (
-          <PoseTracker onAnalysisComplete={handleAnalysisComplete} />
+          <PoseTracker 
+            onAnalysisComplete={handleAnalysisComplete} 
+            onBackgroundTelemetryReady={handleBackgroundTelemetryReady}
+          />
         )}
 
         {view === 'processing' && (
