@@ -3,8 +3,10 @@ import { Key, AlertTriangle, Play, RefreshCw, Cpu, Activity, Info, CheckCircle2,
 import { GoogleGenAI } from '@google/genai';
 import PoseTracker from './components/PoseTracker';
 import Dashboard from './components/Dashboard';
+import Metronome from './components/Metronome';
 import { calculateSessionSummary } from './utils/biomechanics';
 export default function App() {
+  const [currentTab, setCurrentTab] = useState('judge'); // 'judge' | 'metronome'
   const [view, setView] = useState('capture'); // 'capture' | 'processing' | 'results'
   const [apiKey, setApiKey] = useState(() => {
     return localStorage.getItem('bioform_gemini_api_key') || '';
@@ -157,16 +159,42 @@ ${JSON.stringify(trackingHistory, null, 2)}
             </div>
           </div>
 
+          {/* MAIN TAB SWITCHER (CENTER PILL) */}
+          <div className="flex bg-slate-900 border border-slate-800 p-1.5 rounded-2xl text-[10px] sm:text-xs font-orbitron shadow-lg shadow-black/40">
+            <button
+              onClick={() => setCurrentTab('judge')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-extrabold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${
+                currentTab === 'judge'
+                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/5'
+                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
+              }`}
+            >
+              🧬 FORM JUDGE
+            </button>
+            <button
+              onClick={() => setCurrentTab('metronome')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-extrabold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${
+                currentTab === 'metronome'
+                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/5'
+                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
+              }`}
+            >
+              ⏱️ METRONOME
+            </button>
+          </div>
+
           {/* Navigation / Configuration Actions */}
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            {/* View indicators */}
-            <div className="hidden md:flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 p-1 rounded-lg text-xs font-orbitron mr-2">
-              <span className={`px-2.5 py-1 rounded-md transition-all ${view === 'capture' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 border border-transparent'}`}>CAPTURE</span>
-              <span className="text-slate-700">➔</span>
-              <span className={`px-2.5 py-1 rounded-md transition-all ${view === 'processing' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 border border-transparent'}`}>PROCESSING</span>
-              <span className="text-slate-700">➔</span>
-              <span className={`px-2.5 py-1 rounded-md transition-all ${view === 'results' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 border border-transparent'}`}>RESULTS</span>
-            </div>
+            {/* View indicators (Only show when inside Form Judge tab) */}
+            {currentTab === 'judge' && (
+              <div className="hidden lg:flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 p-1.5 rounded-xl text-[10px] font-orbitron mr-2 select-none">
+                <span className={`px-2 py-0.5 rounded transition-all ${view === 'capture' ? 'text-cyan-400 font-bold' : 'text-slate-500'}`}>CAPTURE</span>
+                <span className="text-slate-700">➔</span>
+                <span className={`px-2 py-0.5 rounded transition-all ${view === 'processing' ? 'text-cyan-400 font-bold animate-pulse' : 'text-slate-500'}`}>PROCESSING</span>
+                <span className="text-slate-700">➔</span>
+                <span className={`px-2 py-0.5 rounded transition-all ${view === 'results' ? 'text-cyan-400 font-bold' : 'text-slate-500'}`}>RESULTS</span>
+              </div>
+            )}
 
             {/* API Key Configure Button */}
             <button
@@ -259,47 +287,53 @@ ${JSON.stringify(trackingHistory, null, 2)}
       )}
 
       {/* MAIN VIEW CONTENT CONTAINER */}
-      <main className="flex-1 flex flex-col justify-center items-center">
-        {view === 'capture' && (
-          <PoseTracker onAnalysisComplete={handleAnalysisComplete} />
-        )}
+      <main className="flex-1 flex flex-col justify-center items-center w-full">
+        {currentTab === 'judge' ? (
+          <>
+            {view === 'capture' && (
+              <PoseTracker onAnalysisComplete={handleAnalysisComplete} />
+            )}
 
-        {view === 'processing' && (
-          <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto gap-6">
-            {/* Spinning Neon Rings */}
-            <div className="relative w-24 h-24 flex items-center justify-center">
-              <div className="absolute inset-0 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
-              <div className="absolute inset-2 border-4 border-emerald-500/20 border-b-emerald-400 rounded-full animate-spin [animation-direction:reverse] [animation-duration:1.5s]" />
-              <Cpu className="h-8 w-8 text-cyan-400 animate-pulse" />
-            </div>
+            {view === 'processing' && (
+              <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto gap-6">
+                {/* Spinning Neon Rings */}
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                  <div className="absolute inset-0 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
+                  <div className="absolute inset-2 border-4 border-emerald-500/20 border-b-emerald-400 rounded-full animate-spin [animation-direction:reverse] [animation-duration:1.5s]" />
+                  <Cpu className="h-8 w-8 text-cyan-400 animate-pulse" />
+                </div>
 
-            <div className="flex flex-col gap-2">
-              <h3 className="font-orbitron font-extrabold text-lg text-slate-100 tracking-wider">
-                JUDGING IN PROGRESS
-              </h3>
-              <p className="text-slate-400 text-sm leading-relaxed h-12">
-                {processingPhase}
-              </p>
-            </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-orbitron font-extrabold text-lg text-slate-100 tracking-wider">
+                    JUDGING IN PROGRESS
+                  </h3>
+                  <p className="text-slate-400 text-sm leading-relaxed h-12">
+                    {processingPhase}
+                  </p>
+                </div>
 
-            {/* Glowing progress line */}
-            <div className="w-64 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-              <div className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 w-1/3 rounded-full animate-[loading_2s_infinite_ease-in-out]" />
-            </div>
-            
-            <p className="text-[10px] text-slate-500 font-orbitron tracking-widest uppercase">
-              Average latency: ~3.5 seconds
-            </p>
-          </div>
-        )}
+                {/* Glowing progress line */}
+                <div className="w-64 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                  <div className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 w-1/3 rounded-full animate-[loading_2s_infinite_ease-in-out]" />
+                </div>
+                
+                <p className="text-[10px] text-slate-500 font-orbitron tracking-widest uppercase">
+                  Average latency: ~3.5 seconds
+                </p>
+              </div>
+            )}
 
-        {view === 'results' && (
-          <Dashboard
-            analysisText={analysisResult}
-            trackingData={savedTrackingData}
-            onReset={handleReset}
-            isUploadedVideo={isUploadedVideo}
-          />
+            {view === 'results' && (
+              <Dashboard
+                analysisText={analysisResult}
+                trackingData={savedTrackingData}
+                onReset={handleReset}
+                isUploadedVideo={isUploadedVideo}
+              />
+            )}
+          </>
+        ) : (
+          <Metronome />
         )}
       </main>
 
