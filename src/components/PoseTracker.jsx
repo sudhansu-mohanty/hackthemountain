@@ -414,14 +414,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
 
     // Recording duration stopwatch
     timerIntervalRef.current = setInterval(() => {
-      setRecordingSeconds((prev) => {
-        const next = prev + 1;
-        // Limit recording to 15 seconds to prevent oversized payloads
-        if (next >= 15) {
-          stopRecording();
-        }
-        return next;
-      });
+      setRecordingSeconds((prev) => prev + 1);
     }, 1000);
   };
 
@@ -563,7 +556,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
             <div className="absolute top-4 left-4 flex items-center gap-2 bg-slate-950/80 backdrop-blur-md border border-red-500/30 px-3 py-1.5 rounded-full z-10">
               <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
               <span className="text-xs font-orbitron font-semibold text-red-400 tracking-wider">
-                {sourceMode === 'file' ? 'ANALYZING PLAYBACK' : 'RECORDING'} {recordingSeconds}s / 15s
+                {sourceMode === 'file' ? 'ANALYZING PLAYBACK' : 'RECORDING'} {recordingSeconds}s
               </span>
             </div>
           )}
@@ -646,7 +639,7 @@ export default function PoseTracker({ onAnalysisComplete }) {
               <p>
                 {sourceMode === 'file' 
                   ? 'Upload an athletic video. Click "Start Video Analysis". The engine will automatically play the file, track skeletal lines in real-time, slice tracking coordinates at 5 Hz, and generate your biomechanical audit report when the video ends.'
-                  : 'Stand back so your full body is visible. Click start, execute a joint movement (e.g. Squat or Bicep Curl) for 5-15 seconds, and click stop to transmit the tracking telemetry to Gemini.'}
+                  : 'Stand back so your full body is visible. Click start, execute a joint movement (e.g. Squat or Bicep Curl) as long as needed, and click stop to transmit the tracking telemetry to Gemini.'}
               </p>
             </div>
           </div>
