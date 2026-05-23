@@ -3,8 +3,9 @@ import { Key, AlertTriangle, Play, RefreshCw, Cpu, Activity, Info, CheckCircle2,
 import { GoogleGenAI } from '@google/genai';
 import PoseTracker from './components/PoseTracker';
 import Dashboard from './components/Dashboard';
-import Metronome from './components/Metronome';
 import { calculateSessionSummary } from './utils/biomechanics';
+
+const Metronome = React.lazy(() => import('./components/Metronome'));
 export default function App() {
   const [currentTab, setCurrentTab] = useState('judge'); // 'judge' | 'metronome'
   const [view, setView] = useState('capture'); // 'capture' | 'processing' | 'results'
@@ -333,7 +334,18 @@ ${JSON.stringify(trackingHistory, null, 2)}
             )}
           </>
         ) : (
-          <Metronome />
+          <React.Suspense fallback={
+            <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto gap-6 animate-pulse">
+              <div className="relative w-16 h-16 flex items-center justify-center">
+                <div className="absolute inset-0 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
+              </div>
+              <p className="text-slate-400 font-orbitron text-xs tracking-widest uppercase mt-2">
+                INITIALIZING PACING CONSOLE...
+              </p>
+            </div>
+          }>
+            <Metronome />
+          </React.Suspense>
         )}
       </main>
 
