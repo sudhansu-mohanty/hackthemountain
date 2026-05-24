@@ -194,6 +194,14 @@ export default function Metronome() {
   };
 
   const handleTogglePlay = () => {
+    // PRIME THE HAPTIC ENGINE ON ANDROID:
+    // Android Chrome will aggressively block vibrations that happen inside background loops (requestAnimationFrame)
+    // unless the vibration was explicitly authorized by a direct user click event first!
+    // Firing a tiny 1ms vibration here "primes" the browser's permission for the background scheduler!
+    if (navigator.vibrate) {
+      navigator.vibrate(1);
+    }
+
     if (isPlaying) {
       stopMetronomeEngine();
     } else {
