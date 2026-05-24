@@ -99,18 +99,46 @@ export default function App() {
 
   // Sync Supabase Authentication State
   useEffect(() => {
+    // Check if dev bypass is active
+    if (localStorage.getItem('bioform_dev_bypass') === 'true') {
+      const mockUser = {
+        id: '00000000-0000-0000-0000-000000000000',
+        email: 'admin@bioform.ai',
+        user_metadata: { username: 'AdminBypass' }
+      };
+      setSession({ user: mockUser });
+      setActiveUser({ id: mockUser.id, username: 'AdminBypass' });
+      setIsAuthLoading(false);
+      return;
+    }
+
+    // Safety timeout to ensure we clear the loading screen even if Supabase connection hangs
+    const safetyTimeout = setTimeout(() => {
+      console.warn('[BioForm App] Session retrieval timed out. Clearing loading screen...');
+      setIsAuthLoading(false);
+    }, 4000);
 
     // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        resolveActiveProfile(session.user);
-      }
-      setIsAuthLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        clearTimeout(safetyTimeout);
+        setSession(session);
+        if (session?.user) {
+          resolveActiveProfile(session.user);
+        }
+        setIsAuthLoading(false);
+      })
+      .catch(err => {
+        clearTimeout(safetyTimeout);
+        console.error('[BioForm App] Failed to get initial session:', err);
+        setIsAuthLoading(false);
+      });
 
     // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      // Ignore auth changes if bypass is active to prevent session conflict
+      if (localStorage.getItem('bioform_dev_bypass') === 'true') return;
+
       setSession(session);
       if (session?.user) {
         await resolveActiveProfile(session.user);
@@ -119,7 +147,10 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSignOut = async () => {
