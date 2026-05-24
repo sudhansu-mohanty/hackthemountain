@@ -673,27 +673,28 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 4 }}>
-        <div>
-          <div className="eyebrow-muted" style={{ marginBottom: 4 }}>Performance Capture</div>
-          <div className="h-title" style={{ fontSize: 22, letterSpacing: '0.04em' }}>Pose Tracker</div>
+      <div className="flex flex-col items-center text-center gap-2 mb-4">
+        <div className="text-[10px] font-medium tracking-[0.2em] text-[#ffe16d]/60 uppercase">
+          Performance Capture
         </div>
+        <h1 className="text-3xl font-light tracking-wide text-white/90">
+          Pose Tracker
+        </h1>
       </div>
 
       {/* Source switcher */}
-      <div className="seg" style={{ opacity: isRecording ? 0.4 : 1, pointerEvents: isRecording ? 'none' : 'auto' }}>
-        <button type="button" className={sourceMode === 'webcam' ? 'active' : ''} onClick={() => setSourceMode('webcam')}>
-          Webcam
+      <div className="flex bg-[#2a2a2a]/40 rounded-full p-1.5 w-full mx-auto max-w-[260px] mb-6" style={{ opacity: isRecording ? 0.4 : 1, pointerEvents: isRecording ? 'none' : 'auto' }}>
+        <button type="button" className={`flex-1 py-3 rounded-full text-xs font-medium tracking-widest transition-all duration-300 ${sourceMode === 'webcam' ? 'bg-[#111] text-white shadow-sm' : 'text-white/40 hover:text-white/60'}`} onClick={() => setSourceMode('webcam')}>
+          WEBCAM
         </button>
-        <button type="button" className={sourceMode === 'file' ? 'active' : ''} onClick={() => setSourceMode('file')}>
-          Upload Video
+        <button type="button" className={`flex-1 py-3 rounded-full text-xs font-medium tracking-widest transition-all duration-300 ${sourceMode === 'file' ? 'bg-[#111] text-white shadow-sm' : 'text-white/40 hover:text-white/60'}`} onClick={() => setSourceMode('file')}>
+          UPLOAD
         </button>
       </div>
 
       {/* Video & Canvas Capture Area */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-
-        <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', maxWidth: '100%', background: 'var(--aura-card)', borderRadius: 4, border: '1px solid var(--aura-border-soft)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, width: '100%' }}>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', maxWidth: '100%', background: '#262626', borderRadius: 32, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {/* HTML5 Video Element */}
           <video
             ref={videoRef}
@@ -710,11 +711,11 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
 
           {/* Drag & Drop File Upload Overlay */}
           {sourceMode === 'file' && !uploadedFileUrl && (
-            <label style={{ position: 'absolute', inset: 0, background: 'rgba(12,15,15,0.85)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', padding: 32, textAlign: 'center', zIndex: 20 }}>
-              <UploadCloud size={40} style={{ color: 'var(--aura-cyan)', animation: 'auraPulse 2s ease-in-out infinite' }} />
+            <label style={{ position: 'absolute', inset: 0, background: 'rgba(38,38,38,0.85)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', padding: 32, textAlign: 'center', zIndex: 20 }}>
+              <UploadCloud size={40} className="text-[#ffe16d] mb-4 drop-shadow-[0_0_15px_rgba(255,225,109,0.4)]" />
               <div>
-                <div className="label-syne" style={{ fontSize: 13, color: 'var(--aura-body)', marginBottom: 4 }}>Upload Kinematic Video</div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-muted)' }}>MP4 / WebM — drag & drop or browse</div>
+                <div className="text-sm font-medium text-white/90 mb-2 drop-shadow-[0_0_10px_rgba(255,225,109,0.1)]">Upload Kinematic Video</div>
+                <div className="text-xs text-white/40 font-light">MP4 / WebM — drag & drop or browse</div>
               </div>
               <input type="file" accept="video/*" onChange={handleFileUpload} style={{ display: 'none' }} />
             </label>
@@ -722,61 +723,38 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
 
           {/* Initial Loading Overlay */}
           {modelLoading && (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(12,15,15,0.92)', backdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center', padding: 24, zIndex: 30 }}>
-              <RefreshCw size={32} style={{ color: 'var(--aura-cyan)', animation: 'auraSpin 1s linear infinite' }} />
-              <div className="label-syne" style={{ fontSize: 13, color: 'var(--aura-body)' }}>Initializing System</div>
-              <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-muted)', maxWidth: 280 }}>Configuring BlazePose CNN model via WebGL...</p>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(38,38,38,0.92)', backdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center', padding: 24, zIndex: 30 }}>
+              <RefreshCw size={32} className="text-[#ffe16d] animate-spin mb-2 drop-shadow-[0_0_15px_rgba(255,225,109,0.4)]" />
+              <div className="text-sm font-medium text-white/90 drop-shadow-[0_0_10px_rgba(255,225,109,0.1)]">Initializing System</div>
+              <p className="text-xs text-white/40 font-light">Configuring BlazePose CNN model via WebGL...</p>
             </div>
           )}
 
           {/* Camera Access Error Overlay */}
           {error && !modelLoading && sourceMode === 'webcam' && (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(12,15,15,0.95)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center', padding: 24, zIndex: 30 }}>
-              <AlertCircle size={36} style={{ color: 'var(--aura-rose)' }} />
-              <div className="label-syne" style={{ fontSize: 13, color: 'var(--aura-rose)' }}>Camera Error</div>
-              <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-cream)', maxWidth: 320 }}>{error}</p>
-              <button className="btn-ghost" style={{ padding: '10px 20px', fontSize: 11 }} onClick={() => startWebcam()}>Retry Camera</button>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(38,38,38,0.95)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, textAlign: 'center', padding: 24, zIndex: 30 }}>
+              <AlertCircle size={36} className="text-[#ff6b6b]" />
+              <div className="text-sm font-medium text-[#ff6b6b]">Camera Error</div>
+              <p className="text-xs text-white/60">{error}</p>
+              <button className="px-6 py-2 mt-4 rounded-full bg-[#111] text-white/80 text-xs font-medium tracking-widest hover:bg-[#0a0a0a]" onClick={() => startWebcam()}>RETRY</button>
             </div>
           )}
 
           {/* Live Recording Pulse */}
           {isRecording && (
-            <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(12,15,15,0.88)', backdropFilter: 'blur(12px)', border: '1px solid rgba(110,231,255,0.25)', borderRadius: 999, padding: '6px 12px', zIndex: 10 }}>
-              <span style={{ width: 8, height: 8, background: 'var(--aura-cyan)', borderRadius: '50%', animation: 'auraPulse 1s ease-in-out infinite' }} />
-              <span className="eyebrow" style={{ fontSize: 9, color: 'var(--aura-cyan)' }}>
+            <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(17,17,17,0.88)', backdropFilter: 'blur(12px)', borderRadius: 999, padding: '8px 16px', zIndex: 10 }}>
+              <span className="w-2 h-2 rounded-full bg-[#ff6b6b] animate-pulse" />
+              <span className="text-[10px] font-bold tracking-[0.2em] text-[#ff6b6b] uppercase">
                 {sourceMode === 'file' ? `Analyzing: ${analysisProgress}%` : `Recording ${recordingSeconds}s`}
               </span>
             </div>
           )}
           
-          {/* High-speed analysis scanner overlay */}
-          {sourceMode === 'file' && isRecording && (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(12,15,15,0.35)', pointerEvents: 'none', zIndex: 20, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 16 }}>
-              <div style={{ position: 'absolute', left: 0, right: 0, height: 1, background: 'var(--aura-cyan)', boxShadow: '0 0 12px rgba(110,231,255,0.8)', animation: 'auraScan 1.5s ease-in-out infinite' }} />
-              <div style={{ background: 'rgba(12,15,15,0.92)', backdropFilter: 'blur(12px)', border: '1px solid var(--aura-border-soft)', borderRadius: 4, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="eyebrow-muted" style={{ fontSize: 9 }}>Scanning frames</span>
-                  <span className="eyebrow" style={{ fontSize: 9 }}>{analysisProgress}%</span>
-                </div>
-                <div className="bar"><span style={{ width: `${analysisProgress}%` }} /></div>
-              </div>
-            </div>
-          )}
-
-          {/* Skeleton Scanning Keyframes */}
-          <style>{`
-            @keyframes scan {
-              0% { top: 0%; opacity: 0.3; }
-              50% { top: 100%; opacity: 1; }
-              100% { top: 0%; opacity: 0.3; }
-            }
-          `}</style>
-          
           {/* Skeleton Tracking Status */}
           {!modelLoading && !error && (sourceMode === 'webcam' || uploadedFileUrl) && (
-            <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(12,15,15,0.88)', backdropFilter: 'blur(12px)', border: `1px solid ${latestLandmarksRef.current ? 'rgba(141,232,144,0.3)' : 'rgba(255,203,107,0.3)'}`, borderRadius: 999, padding: '6px 12px', zIndex: 10 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: latestLandmarksRef.current ? 'var(--aura-emerald)' : 'var(--aura-amber)', animation: 'auraPulse 1.5s ease-in-out infinite' }} />
-              <span className="eyebrow" style={{ fontSize: 9, color: latestLandmarksRef.current ? 'var(--aura-emerald)' : 'var(--aura-amber)' }}>
+            <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(17,17,17,0.88)', backdropFilter: 'blur(12px)', borderRadius: 999, padding: '8px 16px', zIndex: 10, boxShadow: latestLandmarksRef.current ? '0 0 20px rgba(141,232,144,0.15)' : '0 0 20px rgba(255,225,109,0.15)' }}>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${latestLandmarksRef.current ? 'bg-[#8de890] shadow-[0_0_10px_#8de890]' : 'bg-[#ffe16d] shadow-[0_0_10px_#ffe16d]'}`} />
+              <span className={`text-[10px] font-bold tracking-[0.2em] uppercase ${latestLandmarksRef.current ? 'text-[#8de890]' : 'text-[#ffe16d]'}`}>
                 {latestLandmarksRef.current ? 'Body Detected' : 'Position Body'}
               </span>
             </div>
@@ -784,120 +762,112 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
         </div>
 
         {/* CONTROLS AREA */}
-        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%' }}>
+        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, width: '100%' }}>
           {sourceMode === 'file' && uploadedFileUrl && (
-            <div className="card" style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
-                <FolderOpen size={14} style={{ color: 'var(--aura-cyan)', flexShrink: 0 }} />
-                <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--aura-cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadedFileName}</span>
+            <div className="bg-[#333333] rounded-[20px] p-4 flex justify-between items-center w-full max-w-[400px]">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}>
+                <FolderOpen size={16} className="text-white/40 flex-shrink-0" />
+                <span className="text-xs font-mono text-white/80 overflow-hidden whitespace-nowrap text-ellipsis">{uploadedFileName}</span>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={togglePlayback}>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button className="w-8 h-8 rounded-full bg-[#111] flex items-center justify-center text-white/60 hover:text-white" onClick={togglePlayback}>
                   {isPlaying ? <PauseIcon size={12} /> : <PlayIcon size={12} />}
                 </button>
-                <label className="btn-ghost" style={{ padding: '6px 10px', fontSize: 10, cursor: 'pointer' }}>
-                  Change
+                <label className="px-4 py-2 rounded-full bg-[#111] text-[10px] font-medium tracking-widest text-white/60 hover:text-white cursor-pointer">
+                  CHANGE
                   <input type="file" accept="video/*" onChange={handleFileUpload} style={{ display: 'none' }} />
                 </label>
               </div>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 10, width: '100%', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: 16, width: '100%', justifyContent: 'center' }}>
             {!isRecording ? (
               <button
                 onClick={startRecording}
                 disabled={modelLoading || (sourceMode === 'webcam' && (error || !latestLandmarksRef.current)) || (sourceMode === 'file' && !uploadedFileUrl)}
-                className="btn-gold"
-                style={{ opacity: (modelLoading || (sourceMode === 'webcam' && (error || !latestLandmarksRef.current)) || (sourceMode === 'file' && !uploadedFileUrl)) ? 0.4 : 1, cursor: (modelLoading || (sourceMode === 'webcam' && (error || !latestLandmarksRef.current)) || (sourceMode === 'file' && !uploadedFileUrl)) ? 'not-allowed' : 'pointer' }}
+                className="w-full max-w-[280px] py-4 rounded-full bg-[#333333] text-[#ffe16d] text-xs font-medium tracking-widest hover:bg-[#404040] transition-all flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ boxShadow: '0 0 30px rgba(255,225,109,0.2)', border: '1px solid rgba(255,225,109,0.15)' }}
               >
-                <Video size={14} />
-                {sourceMode === 'file' ? 'Analyze Video' : 'Start Recording'}
+                <Video size={16} />
+                {sourceMode === 'file' ? 'ANALYZE VIDEO' : 'START RECORDING'}
               </button>
             ) : (
               <button
                 onClick={stopRecording}
-                className="btn-ghost"
-                style={{ color: 'var(--aura-rose)', borderColor: 'rgba(255,143,163,0.4)', width: '100%' }}
+                className="w-full max-w-[280px] py-4 rounded-full bg-[#ff6b6b]/20 text-[#ff6b6b] text-xs font-medium tracking-widest hover:bg-[#ff6b6b]/30 transition-all flex items-center justify-center gap-3"
+                style={{ boxShadow: '0 0 30px rgba(255,107,107,0.2)', border: '1px solid rgba(255,107,107,0.2)' }}
               >
-                <VideoOff size={14} style={{ color: 'var(--aura-rose)' }} />
-                Stop & Analyze ({history.length} frames)
+                <VideoOff size={16} />
+                STOP & ANALYZE ({history.length} FRAMES)
               </button>
             )}
           </div>
           
-          <div className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%', padding: '12px 14px' }}>
-            <Info size={13} style={{ color: 'var(--aura-cyan)', flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <div className="label-syne" style={{ fontSize: 11, color: 'var(--aura-body)', marginBottom: 4 }}>
-                {sourceMode === 'file' ? 'Video Analysis' : 'Webcam Capture'}
-              </div>
-              <p style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--aura-muted)', lineHeight: 1.5, margin: 0 }}>
-                {sourceMode === 'file'
-                  ? 'Upload a video, start analysis. BlazePose tracks skeleton in real-time and generates your biomechanical report.'
-                  : 'Stand back so your full body is visible. Start, perform your routine, then stop to generate the report.'}
-              </p>
-            </div>
-          </div>
+          <p className="text-[10px] text-white/40 leading-relaxed max-w-sm text-center font-medium mt-2">
+            {sourceMode === 'file'
+              ? 'Upload a video, start analysis. BlazePose tracks the skeleton and generates a report.'
+              : 'Stand back so your full body is visible. Start, perform your routine, then stop to generate the report.'}
+          </p>
         </div>
       </div>
 
       {/* Live Telemetry Panel */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Live Telemetry Panel */}
+      <div className="flex flex-col gap-6 w-full max-w-[800px]">
         {/* Real-time Angles Board */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--aura-border-soft)' }}>
-            <Activity size={14} style={{ color: 'var(--aura-cyan)' }} />
-            <div className="label-syne" style={{ fontSize: 12, color: 'var(--aura-body)' }}>Live Telemetry</div>
+        <div className="bg-[#333333] rounded-[32px] p-8 pb-10">
+          <div className="flex items-center gap-3 mb-8 pb-6 border-b border-[#404040]">
+            <Activity size={18} className="text-[#ffe16d]" />
+            <div className="text-xs font-medium tracking-[0.2em] text-[#ffe16d]/80 uppercase">Live Telemetry</div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="flex flex-col gap-8">
             {[
-              { label: 'Knee Flexion', left: liveMetrics.leftKnee, right: liveMetrics.rightKnee, color: 'var(--aura-cyan)' },
-              { label: 'Elbow Flexion', left: liveMetrics.leftElbow, right: liveMetrics.rightElbow, color: 'var(--aura-emerald)' },
-              { label: 'Hip Flexion', left: liveMetrics.leftHip, right: liveMetrics.rightHip, color: 'var(--aura-amber)' },
+              { label: 'Knee Flexion', left: liveMetrics.leftKnee, right: liveMetrics.rightKnee, color: 'text-white' },
+              { label: 'Elbow Flexion', left: liveMetrics.leftElbow, right: liveMetrics.rightElbow, color: 'text-white' },
+              { label: 'Hip Flexion', left: liveMetrics.leftHip, right: liveMetrics.rightHip, color: 'text-white' },
             ].map((m) => (
               <div key={m.label}>
-                <div className="eyebrow-muted" style={{ fontSize: 9, marginBottom: 6 }}>{m.label}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, textAlign: 'center' }}>
+                <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">{m.label}</div>
+                <div className="grid grid-cols-2 gap-4 text-center">
                   {[['L', m.left], ['R', m.right]].map(([side, val]) => (
-                    <div key={side} style={{ background: 'var(--aura-bg)', border: '1px solid var(--aura-border-soft)', borderRadius: 4, padding: '8px 6px' }}>
-                      <div className="eyebrow-muted" style={{ fontSize: 8 }}>{side}</div>
-                      <div style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 500, fontSize: 22, color: m.color, lineHeight: 1.1 }}>{val !== null ? `${val}°` : '—'}</div>
+                    <div key={side} className="bg-[#262626] rounded-[20px] p-6">
+                      <div className="text-[10px] font-medium tracking-[0.2em] text-white/30 mb-2">{side}</div>
+                      <div className={`font-light text-4xl tracking-tighter ${m.color}`}>{val !== null ? `${val}°` : '—'}</div>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
 
-            <div style={{ borderTop: '1px solid var(--aura-border-soft)', paddingTop: 12 }}>
-              <div className="eyebrow-muted" style={{ fontSize: 9, marginBottom: 6 }}>Torso Tilt</div>
-              <div style={{ background: 'var(--aura-bg)', border: '1px solid var(--aura-border-soft)', borderRadius: 4, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--aura-muted)' }}>Lean Angle</span>
-                <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 22, fontWeight: 500, color: 'var(--aura-cyan)' }}>{liveMetrics.torsoTilt !== null ? `${liveMetrics.torsoTilt}°` : '—'}</span>
+            <div className="border-t border-[#404040] pt-8">
+              <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">Torso Tilt</div>
+              <div className="bg-[#262626] rounded-[20px] p-6 flex justify-between items-center">
+                <span className="text-sm text-white/60 font-light">Lean Angle</span>
+                <span className="font-light text-4xl tracking-tighter text-[#ffe16d]">{liveMetrics.torsoTilt !== null ? `${liveMetrics.torsoTilt}°` : '—'}</span>
               </div>
             </div>
 
             <div>
-              <div className="eyebrow-muted" style={{ fontSize: 9, marginBottom: 6 }}>Knee Asymmetry Delta</div>
-              <div style={{ background: 'var(--aura-bg)', border: `1px solid ${liveMetrics.kneeAsymmetry > 10 ? 'rgba(255,203,107,0.4)' : 'var(--aura-border-soft)'}`, borderRadius: 4, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--aura-muted)' }}>Δ difference</span>
-                <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 22, fontWeight: 500, color: liveMetrics.kneeAsymmetry > 10 ? 'var(--aura-amber)' : 'var(--aura-cream)' }}>{liveMetrics.kneeAsymmetry !== null ? `${liveMetrics.kneeAsymmetry}°` : '—'}</span>
+              <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">Knee Asymmetry Delta</div>
+              <div className="bg-[#262626] rounded-[20px] p-6 flex justify-between items-center">
+                <span className="text-sm text-white/60 font-light">Δ difference</span>
+                <span className={`font-light text-4xl tracking-tighter ${liveMetrics.kneeAsymmetry > 10 ? 'text-[#ff6b6b]' : 'text-white'}`}>
+                  {liveMetrics.kneeAsymmetry !== null ? `${liveMetrics.kneeAsymmetry}°` : '—'}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Pipeline spec */}
-        <div className="card" style={{ padding: '14px 16px' }}>
-          <div className="eyebrow" style={{ marginBottom: 10 }}>Pipeline Spec</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {['BlazePose — single-person topology', 'Sampling: 5 Hz (200ms intervals)', 'Cosine rule vector dot product', 'Output: biomechanical array JSON'].map((item) => (
-              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--aura-gold)', flexShrink: 0 }} />
-                <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--aura-muted)' }}>{item}</span>
-              </div>
-            ))}
+        <div className="bg-transparent border border-[#333] rounded-[24px] p-6 flex flex-col gap-4 items-center text-center">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase">Pipeline Spec</div>
+          <div className="text-xs font-light text-white/50 flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <span>BlazePose Topology</span>
+            <span>5 Hz Sampling</span>
+            <span>Cosine Vector Dot Product</span>
           </div>
         </div>
       </div>

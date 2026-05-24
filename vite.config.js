@@ -10,6 +10,9 @@ export default defineConfig({
     tailwindcss(),
     basicSsl(),
   ],
+  server: {
+    https: true,
+  },
   build: {
     rollupOptions: {
       output: {
