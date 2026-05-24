@@ -41,6 +41,7 @@ export default function CommunityFeed({ activeUser, onShowProfileModal }) {
   const [loadingComments, setLoadingComments] = useState({}); // { [postId]: boolean }
   const [newCommentTexts, setNewCommentTexts] = useState({}); // { [postId]: string }
   const [submittingComment, setSubmittingComment] = useState({}); // { [postId]: boolean }
+  const [userVotes, setUserVotes] = useState({});
 
   const isSupabaseConfigured = 
     import.meta.env.VITE_SUPABASE_URL && 
@@ -96,6 +97,20 @@ export default function CommunityFeed({ activeUser, onShowProfileModal }) {
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    if (activeUser) {
+      try {
+        const stored = localStorage.getItem(`bioform_votes_${activeUser.id}`);
+        setUserVotes(stored ? JSON.parse(stored) : {});
+      } catch (err) {
+        console.error('Failed to load user votes:', err);
+        setUserVotes({});
+      }
+    } else {
+      setUserVotes({});
+    }
+  }, [activeUser]);
 
   // Format timestamp helper
   const formatTime = (timestamp) => {
@@ -186,12 +201,44 @@ export default function CommunityFeed({ activeUser, onShowProfileModal }) {
     let updatedLikes = previousLikes;
     let updatedDislikes = previousDislikes;
 
+    // Determine current vote for this post
+    const currentVote = userVotes[postId] || null;
+    let newVote = null;
+
     if (type === 'like') {
-      updatedLikes += 1;
+      if (currentVote === 'like') {
+        // Toggle off the like
+        updatedLikes = Math.max(0, updatedLikes - 1);
+        newVote = null;
+      } else if (currentVote === 'dislike') {
+        // Switch from dislike to like
+        updatedDislikes = Math.max(0, updatedDislikes - 1);
+        updatedLikes += 1;
+        newVote = 'like';
+      } else {
+        // Vote like
+        updatedLikes += 1;
+        newVote = 'like';
+      }
     } else {
-      updatedDislikes += 1;
+      // type === 'dislike'
+      if (currentVote === 'dislike') {
+        // Toggle off the dislike
+        updatedDislikes = Math.max(0, updatedDislikes - 1);
+        newVote = null;
+      } else if (currentVote === 'like') {
+        // Switch from like to dislike
+        updatedLikes = Math.max(0, updatedLikes - 1);
+        updatedDislikes += 1;
+        newVote = 'dislike';
+      } else {
+        // Vote dislike
+        updatedDislikes += 1;
+        newVote = 'dislike';
+      }
     }
 
+    // Optimistically update posts
     setPosts(prev => prev.map(p => {
       if (p.id === postId) {
         return {
@@ -202,6 +249,18 @@ export default function CommunityFeed({ activeUser, onShowProfileModal }) {
       }
       return p;
     }));
+
+    // Optimistically update userVotes and localStorage
+    const updatedVotes = {
+      ...userVotes,
+      [postId]: newVote
+    };
+    setUserVotes(updatedVotes);
+    try {
+      localStorage.setItem(`bioform_votes_${activeUser.id}`, JSON.stringify(updatedVotes));
+    } catch (err) {
+      console.error('Failed to save vote to localStorage:', err);
+    }
 
     // 3. Sync with database
     try {
@@ -227,6 +286,18 @@ export default function CommunityFeed({ activeUser, onShowProfileModal }) {
         }
         return p;
       }));
+
+      // Revert user votes state and localStorage
+      const revertedVotes = {
+        ...userVotes,
+        [postId]: currentVote
+      };
+      setUserVotes(revertedVotes);
+      try {
+        localStorage.setItem(`bioform_votes_${activeUser.id}`, JSON.stringify(revertedVotes));
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
@@ -537,12 +608,12 @@ export default function CommunityFeed({ activeUser, onShowProfileModal }) {
                 {/* Card footer */}
                 <div style={{ padding: '12px 18px', borderTop: '1px solid var(--aura-border-soft)', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ display: 'flex', background: 'var(--aura-bg)', border: '1px solid var(--aura-border-soft)', borderRadius: 999, overflow: 'hidden' }}>
-                    <button onClick={() => handleVote(post.id, 'like')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: 'var(--aura-muted)' }}>
-                      <ThumbsUp size={11} /> {post.likes_count}
+                    <button onClick={() => handleVote(post.id, 'like')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: userVotes[post.id] === 'like' ? 'var(--aura-gold)' : 'var(--aura-muted)' }}>
+                      <ThumbsUp size={11} fill={userVotes[post.id] === 'like' ? 'var(--aura-gold)' : 'none'} /> {post.likes_count}
                     </button>
                     <div style={{ width: 1, background: 'var(--aura-border-soft)' }} />
-                    <button onClick={() => handleVote(post.id, 'dislike')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: 'var(--aura-muted)' }}>
-                      <ThumbsDown size={11} /> {post.dislikes_count}
+                    <button onClick={() => handleVote(post.id, 'dislike')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: userVotes[post.id] === 'dislike' ? 'var(--aura-rose)' : 'var(--aura-muted)' }}>
+                      <ThumbsDown size={11} fill={userVotes[post.id] === 'dislike' ? 'var(--aura-rose)' : 'none'} /> {post.dislikes_count}
                     </button>
                   </div>
                   <button onClick={() => toggleComments(post.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: isCommentsOpen ? 'rgba(110,231,255,0.08)' : 'var(--aura-bg)', border: `1px solid ${isCommentsOpen ? 'rgba(110,231,255,0.25)' : 'var(--aura-border-soft)'}`, borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: isCommentsOpen ? 'var(--aura-cyan)' : 'var(--aura-muted)' }}>

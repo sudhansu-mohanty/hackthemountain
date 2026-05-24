@@ -119,8 +119,8 @@ export default function LandingPage({ onStartCapture }) {
         <h1 className="font-serif text-[12vw] md:text-[10vw] lg:text-[130px] font-semibold tracking-tighter leading-[0.85] text-white/90 uppercase m-0">
           WE<br />
           CREATE<br />
-          <span className="text-[#ffe16d]">HAR<span className="text-[#ffe16d] mx-2 font-sans text-[0.75em] align-middle drop-shadow-[0_0_20px_rgba(255,225,109,0.4)]">✦</span>ONIOUS</span><br />
-          C<span className="text-white/40 mx-2 font-sans text-[0.75em] align-middle">✽</span>MMUNITIES
+          <span className="text-[#ffe16d]">HAR<span className="text-[#ffe16d] mx-2 font-sans text-[0.75em] align-middle drop-shadow-[0_0_20px_rgba(255,225,109,0.4)]" style={{ position: 'relative', top: '-0.16em' }}>✦</span>ONIOUS</span><br />
+          C<span className="text-white/40 mx-2 font-sans text-[0.75em] align-middle" style={{ position: 'relative', top: '-0.16em' }}>✽</span>MMUNITIES
         </h1>
       </div>
 

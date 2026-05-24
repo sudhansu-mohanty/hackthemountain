@@ -267,7 +267,7 @@ export default function Metronome() {
   };
 
   return (
-    <div className="max-w-md mx-auto w-full px-6 py-12 flex flex-col gap-16 font-sans">
+    <div className="max-w-md mx-auto w-full px-6 py-4 flex flex-col gap-8 font-sans">
       {/* HEADER */}
       <div className="flex flex-col items-center text-center gap-2">
         <div className="text-[10px] font-medium tracking-[0.2em] text-[#ffe16d] uppercase">
@@ -298,11 +298,11 @@ export default function Metronome() {
       {mode === 'bpm' ? (
         <div className="flex flex-col items-center w-full relative">
           
-          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-8">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">
             Total Cadence
           </div>
           
-          <div className="relative w-full aspect-[2/1] flex justify-center overflow-visible mb-16 max-w-[280px]">
+          <div className="relative w-full aspect-[2/1] flex justify-center overflow-visible mb-8 max-w-[280px]">
             {/* The Massive Minimalist Gauge */}
             <svg viewBox="0 0 200 100" className="w-full h-full overflow-visible">
               <defs>
@@ -338,7 +338,7 @@ export default function Metronome() {
             </div>
           </div>
 
-          <div className="flex items-center gap-8 w-full max-w-[280px] mb-12">
+          <div className="flex items-center gap-8 w-full max-w-[280px] mb-6">
             <button 
               onClick={() => adjustBpm(-5)} 
               className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white/90 transition-colors shrink-0"
@@ -352,6 +352,7 @@ export default function Metronome() {
               onChange={(e) => setBpm(parseInt(e.target.value))}
               className="flex-1 h-0.5 rounded-full appearance-none bg-[#444] outline-none"
               style={{ accentColor: '#ffe16d' }}
+              disabled={isPlaying}
             />
             <button 
               onClick={() => adjustBpm(5)} 
@@ -361,7 +362,7 @@ export default function Metronome() {
             </button>
           </div>
 
-          <div className="flex gap-4 w-full justify-center mb-8">
+          <div className="flex gap-4 w-full justify-center mb-4">
             <button className="px-6 py-3 rounded-full bg-transparent text-[10px] font-medium tracking-widest text-white/50 hover:text-white/90 transition-colors" onClick={() => adjustBpm(-1)}>MINUS</button>
             <button className="px-8 py-3 rounded-full bg-[#111] border border-[#2a2a2a] text-[10px] font-medium tracking-widest text-white/90 hover:bg-[#1a1a1a] transition-all" onClick={handleTapTempo}>TAP</button>
             <button className="px-6 py-3 rounded-full bg-transparent text-[10px] font-medium tracking-widest text-white/50 hover:text-white/90 transition-colors" onClick={() => adjustBpm(1)}>PLUS</button>
@@ -369,10 +370,10 @@ export default function Metronome() {
         </div>
       ) : (
         <div className="flex flex-col items-center w-full">
-          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-8">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">
             Subdivision Meter
           </div>
-          <div className="grid grid-cols-4 gap-3 w-full max-w-[280px] mb-12">
+          <div className="grid grid-cols-4 gap-3 w-full max-w-[280px] mb-6">
             {[{ beats: 4, label: '4/4' }, { beats: 3, label: '3/4' }, { beats: 6, label: '6/8' }, { beats: 5, label: '5/4' }].map((sig) => (
               <button 
                 key={sig.beats}
@@ -388,7 +389,7 @@ export default function Metronome() {
             ))}
           </div>
 
-          <div className="flex flex-wrap justify-center gap-4 w-full max-w-[280px] mb-8">
+          <div className="flex flex-wrap justify-center gap-4 w-full max-w-[280px] mb-4">
             {Array.from({ length: beatsPerMeasure }).map((_, idx) => {
               const isFirst = idx === 0;
               const isActive = activeBeat === idx;
@@ -428,12 +429,12 @@ export default function Metronome() {
       </button>
 
       {/* FEEDBACK SYSTEM PANEL */}
-      <div className="w-full flex flex-col items-center mt-8">
-        <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-6">
+      <div className="w-full flex flex-col items-center mt-4">
+        <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">
           Output Routing
         </div>
         
-        <div className="flex bg-[#2a2a2a]/40 rounded-full p-1 w-full max-w-[280px] mb-8">
+        <div className="flex bg-[#2a2a2a]/40 rounded-full p-1 w-full max-w-[280px]">
           <button className={`flex-1 py-2.5 rounded-full text-[10px] font-medium tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${feedbackMode === 'audio' ? 'bg-[#111] text-white' : 'text-white/40 hover:text-white/60'}`} onClick={() => setFeedbackMode('audio')}>
             <Volume2 size={12} /> AUDIO
           </button>
@@ -444,28 +445,16 @@ export default function Metronome() {
             <Zap size={12} /> DUAL
           </button>
         </div>
-
-        <div className={`flex items-center gap-6 w-full max-w-[280px] transition-opacity duration-300 ${feedbackMode === 'haptic' ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-          <button className="text-white/40 hover:text-white/80 transition-colors" onClick={() => setIsMuted(!isMuted)}>
-            {isMuted ? <VolumeX size={16} strokeWidth={1.5} /> : <Volume2 size={16} strokeWidth={1.5} />}
-          </button>
-          <input type="range" min="0" max="1" step="0.05" value={volume}
-            onChange={(e) => { setVolume(parseFloat(e.target.value)); if (isMuted) setIsMuted(false); }}
-            className="flex-1 h-0.5 rounded-full appearance-none bg-[#444] outline-none"
-            style={{ accentColor: '#ffe16d' }}
-            disabled={feedbackMode === 'haptic'}
-          />
-        </div>
       </div>
 
       {/* VIRTUAL HAPTIC SIMULATOR (Fallback for Desktop) */}
       {!isVibrationSupported && (
-        <div className="w-full flex flex-col items-center mt-4">
-          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-8">
+        <div className="w-full flex flex-col items-center mt-2">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">
             Virtual Haptics
           </div>
           
-          <div className="flex flex-col items-center justify-center py-8 w-full max-w-[280px] relative">
+          <div className="flex flex-col items-center justify-center py-4 w-full max-w-[280px] relative">
             {/* Expanding Shockwaves */}
             {isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') && vibeCount > 0 && (
               <div 
@@ -497,7 +486,7 @@ export default function Metronome() {
             </div>
 
             {/* Status HUD */}
-            <div className="text-[9px] font-medium tracking-widest text-center mt-8 uppercase">
+            <div className="text-[9px] font-medium tracking-widest text-center mt-4 uppercase">
               {isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') ? (
                 vibeCount > 0 ? (
                   isAccentVibe ? (
@@ -517,7 +506,7 @@ export default function Metronome() {
       )}
 
       {/* VOCAL RHYTHM JUDGE */}
-      <div className="w-full mt-8">
+      <div className="w-full mt-4">
         <VocalJudge bpm={bpm} isPlaying={isPlaying} onStartJudge={handleStartJudge} onStopJudge={handleStopJudge} />
       </div>
 

@@ -56,6 +56,10 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
   const currentScoreRef = useRef(100);
   const previousPitchRef = useRef(-1);
   const lastVocalActivityRef = useRef(0);
+  const totalHitScoreRef = useRef(0);
+  const silenceMissCountRef = useRef(0);
+
+  const [finalAverageScore, setFinalAverageScore] = useState(null);
 
   // Debounce visual pulse
   const visualTimeoutRef = useRef(null);
@@ -78,9 +82,12 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
       setScore(100);
       setAvgError(0);
       setHits(0);
+      setFinalAverageScore(null);
       accumulatedErrorRef.current = 0;
       hitCountRef.current = 0;
       currentScoreRef.current = 100;
+      totalHitScoreRef.current = 0;
+      silenceMissCountRef.current = 0;
 
       // Start time for the judge session
       startTimeRef.current = audioCtx.currentTime;
@@ -111,6 +118,12 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
       audioCtxRef.current.close().catch(console.error);
       audioCtxRef.current = null;
     }
+
+    // Calculate final average score including vocal hits and silent missed beats
+    const totalBeats = hitCountRef.current + silenceMissCountRef.current;
+    const avg = totalBeats > 0 ? Math.round(totalHitScoreRef.current / totalBeats) : 100;
+    setFinalAverageScore(avg);
+
     if (onStopJudge) onStopJudge();
   };
 
@@ -225,6 +238,7 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
 
       accumulatedErrorRef.current += errorMs;
       hitCountRef.current += 1;
+      totalHitScoreRef.current += hitScore;
 
       // Use Exponentially Weighted Moving Average (EWMA) for hyper-responsive scoring!
       // This prevents a long history of perfect singing from masking current mistakes.
@@ -252,6 +266,7 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
 
         currentScoreRef.current = Math.max(0, currentScoreRef.current - 50);
         setScore(Math.round(currentScoreRef.current));
+        silenceMissCountRef.current += 1;
 
         lastVocalActivityRef.current += secondsPerBeat;
       }
@@ -261,7 +276,7 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
   };
 
   return (
-    <div className="relative w-full flex flex-col items-center gap-10 mt-8 transition-colors duration-500">
+    <div className="relative w-full flex flex-col items-center gap-5 mt-4 transition-colors duration-500">
 
       {/* Background Glow */}
       {isJudging && (
@@ -273,11 +288,11 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
 
       {/* HEADER */}
       <div className="flex flex-col items-center text-center gap-2 relative z-10 w-full max-w-[280px]">
-        <div className="text-[10px] font-medium tracking-[0.2em] text-[#ffe16d]/60 uppercase mb-2 flex items-center gap-2">
+        <div className="text-[10px] font-medium tracking-[0.2em] text-[#ffe16d]/60 uppercase mb-1 flex items-center gap-2">
           <Mic size={12} className={isJudging ? 'text-[#8de890] animate-pulse' : ''} />
           Acoustic Analysis
         </div>
-        <h3 className="text-2xl font-light text-white/90 tracking-wide mb-4">Vocal Rhythm Judge</h3>
+        <h3 className="text-2xl font-light text-white/90 tracking-wide mb-2">Vocal Rhythm Judge</h3>
         <p className="text-[10px] text-white/50 leading-relaxed text-center font-medium">
           Synchronize vocal pulses with the kinetic sweep. Audio feedback routes to haptics during analysis.
         </p>
@@ -290,16 +305,17 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
       )}
 
       {/* TELEMETRY DATA */}
-      <div className="flex flex-col items-center w-full max-w-[280px] relative z-10 gap-10">
+      <div className="flex flex-col items-center w-full max-w-[280px] relative z-10 gap-5">
 
         {/* Score Hub */}
         <div className="flex flex-col items-center justify-center relative w-full">
-          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-2">
             Phase Accuracy
           </div>
-          <div className={`text-[100px] font-light leading-none tracking-tighter ${score >= 90 ? 'text-[#8de890]' : score >= 70 ? 'text-[#ffe16d]' : 'text-[#ff6b6b]'
-            }`}>
-            {isJudging || hits > 0 ? score : '—'}
+          <div className={`text-[100px] font-light leading-none tracking-tighter ${
+            (isJudging ? score : (finalAverageScore !== null ? finalAverageScore : score)) >= 90 ? 'text-[#8de890]' : (isJudging ? score : (finalAverageScore !== null ? finalAverageScore : score)) >= 70 ? 'text-[#ffe16d]' : 'text-[#ff6b6b]'
+          }`}>
+            {isJudging ? score : (finalAverageScore !== null ? finalAverageScore : (hits > 0 ? score : '—'))}
           </div>
         </div>
 
@@ -323,7 +339,7 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
       </div>
 
       {/* ACTION BUTTON */}
-      <div className="w-full max-w-[280px] relative z-10 mt-4">
+      <div className="w-full max-w-[280px] relative z-10 mt-2">
         {isJudging ? (
           <button
             className="w-full py-5 rounded-full bg-[#111] text-[#ff6b6b] text-xs font-medium tracking-widest hover:bg-[#0a0a0a] transition-all flex items-center justify-center gap-3"

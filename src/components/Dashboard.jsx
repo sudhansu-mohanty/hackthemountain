@@ -157,7 +157,6 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
           </svg>
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600, fontSize: 52, color: 'var(--aura-body)', lineHeight: 1 }}>{animatedScore}</span>
-            <div className="eyebrow-muted" style={{ fontSize: 8, marginTop: 2 }}>of 100 pts</div>
           </div>
         </div>
       </div>
@@ -207,8 +206,7 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
               padding: '16px 18px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, color: c }}>
-                <span style={{ fontSize: 14 }}>{isSymmetry ? '⚖️' : '📉'}</span>
-                <div className="label-syne" style={{ fontSize: 12, color: 'var(--aura-body)' }}>{section.title}</div>
+                <div className="label-syne" style={{ fontSize: 12, color: 'var(--aura-body)' }}>{section.title.replace('⚖️', '').replace('📉', '').trim()}</div>
               </div>
               <div style={{ fontFamily: 'DM Sans', fontSize: '13px', lineHeight: 1.7, color: 'var(--aura-cream)' }}>
                 {formatBodyText(content)}

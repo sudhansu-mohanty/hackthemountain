@@ -78,6 +78,10 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
 
     ctx.clearRect(0, 0, width, height);
 
+    if (sourceMode === 'file' || sourceModeRef.current === 'file') {
+      return;
+    }
+
     if (!landmarks) return;
 
     // Draw connection lines (bones)
@@ -809,66 +813,6 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
               ? 'Upload a video, start analysis. BlazePose tracks the skeleton and generates a report.'
               : 'Stand back so your full body is visible. Start, perform your routine, then stop to generate the report.'}
           </p>
-        </div>
-      </div>
-
-      {/* Live Telemetry Panel */}
-      {/* Live Telemetry Panel */}
-      <div className="flex flex-col gap-6 w-full max-w-[800px]">
-        {/* Real-time Angles Board */}
-        <div className="bg-[#333333] rounded-[32px] p-8 pb-10">
-          <div className="flex items-center gap-3 mb-8 pb-6 border-b border-[#404040]">
-            <Activity size={18} className="text-[#ffe16d]" />
-            <div className="text-xs font-medium tracking-[0.2em] text-[#ffe16d]/80 uppercase">Live Telemetry</div>
-          </div>
-
-          <div className="flex flex-col gap-8">
-            {[
-              { label: 'Knee Flexion', left: liveMetrics.leftKnee, right: liveMetrics.rightKnee, color: 'text-white' },
-              { label: 'Elbow Flexion', left: liveMetrics.leftElbow, right: liveMetrics.rightElbow, color: 'text-white' },
-              { label: 'Hip Flexion', left: liveMetrics.leftHip, right: liveMetrics.rightHip, color: 'text-white' },
-            ].map((m) => (
-              <div key={m.label}>
-                <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">{m.label}</div>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  {[['L', m.left], ['R', m.right]].map(([side, val]) => (
-                    <div key={side} className="bg-[#262626] rounded-[20px] p-6">
-                      <div className="text-[10px] font-medium tracking-[0.2em] text-white/30 mb-2">{side}</div>
-                      <div className={`font-light text-4xl tracking-tighter ${m.color}`}>{val !== null ? `${val}°` : '—'}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            <div className="border-t border-[#404040] pt-8">
-              <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">Torso Tilt</div>
-              <div className="bg-[#262626] rounded-[20px] p-6 flex justify-between items-center">
-                <span className="text-sm text-white/60 font-light">Lean Angle</span>
-                <span className="font-light text-4xl tracking-tighter text-[#ffe16d]">{liveMetrics.torsoTilt !== null ? `${liveMetrics.torsoTilt}°` : '—'}</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">Knee Asymmetry Delta</div>
-              <div className="bg-[#262626] rounded-[20px] p-6 flex justify-between items-center">
-                <span className="text-sm text-white/60 font-light">Δ difference</span>
-                <span className={`font-light text-4xl tracking-tighter ${liveMetrics.kneeAsymmetry > 10 ? 'text-[#ff6b6b]' : 'text-white'}`}>
-                  {liveMetrics.kneeAsymmetry !== null ? `${liveMetrics.kneeAsymmetry}°` : '—'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pipeline spec */}
-        <div className="bg-transparent border border-[#333] rounded-[24px] p-6 flex flex-col gap-4 items-center text-center">
-          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase">Pipeline Spec</div>
-          <div className="text-xs font-light text-white/50 flex flex-wrap justify-center gap-x-6 gap-y-2">
-            <span>BlazePose Topology</span>
-            <span>5 Hz Sampling</span>
-            <span>Cosine Vector Dot Product</span>
-          </div>
         </div>
       </div>
     </div>

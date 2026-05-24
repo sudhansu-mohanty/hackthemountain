@@ -366,3 +366,25 @@ body::after {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── HTML5 Audio Controls Dark theme Styling ── */
+audio {
+  filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(110%);
+  border-radius: 99px;
+  background: transparent;
+  overflow: hidden;
+  border: none;
+}
+
+/* ── Homepage Responsive Adjustments ── */
+@media (max-width: 768px) {
+  .grid-responsive-hero {
+    grid-template-columns: 1fr !important;
+  }
+  .grid-responsive-3col {
+    grid-template-columns: 1fr !important;
+  }
+  .workflow-connector {
+    display: none !important;
+  }
+}

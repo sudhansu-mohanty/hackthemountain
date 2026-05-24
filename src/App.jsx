@@ -11,6 +11,7 @@ import CommunityFeed from './components/CommunityFeed';
 import LandingPage from './components/LandingPage';
 import UserDashboard from './components/UserDashboard';
 import AuthGate from './components/AuthGate';
+import Home from './components/Home';
 
 const withTimeout = (promise, timeoutMs = 15000, errorMsg = 'Connection timed out') => {
   return Promise.race([
@@ -23,7 +24,7 @@ const withTimeout = (promise, timeoutMs = 15000, errorMsg = 'Connection timed ou
 
 const Metronome = React.lazy(() => import('./components/Metronome'));
 export default function App() {
-  const [activeMainTab, setActiveMainTab] = useState('coach'); // 'coach' | 'feed' | 'dashboard'
+  const [activeMainTab, setActiveMainTab] = useState('home'); // 'home' | 'coach' | 'feed' | 'dashboard'
   const [currentTab, setCurrentTab] = useState('judge'); // 'judge' | 'metronome'
   const [view, setView] = useState('capture'); // 'capture' | 'processing' | 'results'
   const [apiKey, setApiKey] = useState(() => {
@@ -163,7 +164,7 @@ export default function App() {
       }
       setActiveUser(null);
       setSession(null);
-      setActiveMainTab('coach');
+      setActiveMainTab('home');
       setView('capture');
     } catch (err) {
       console.error('Sign out error:', err);
@@ -433,7 +434,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
   const handleReset = () => {
     setAnalysisResult('');
     setSavedTrackingData([]);
-    setView('home');
+    setView('capture');
     setError(null);
     setPrefetchedResult(null);
     setPrefetchedError(null);
@@ -452,15 +453,13 @@ ${JSON.stringify(trackingHistory, null, 2)}
           {/* ── SCÉNIX HEADER ── */}
           <header style={{
             position: 'fixed', top: 0, left: 0, width: '100%', zIndex: 50,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '14px 18px 10px',
             background: 'linear-gradient(180deg, rgba(12,15,15,0.96), rgba(12,15,15,0.7))',
             backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid var(--aura-border-soft)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+            minHeight: '57px',
           }}>
-            <button className="icon-btn" onClick={() => setShowKeyModal(!showKeyModal)}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>menu</span>
-            </button>
             <h1 style={{
               fontFamily: 'Cormorant Garamond, serif',
               fontWeight: 500,
@@ -472,16 +471,13 @@ ${JSON.stringify(trackingHistory, null, 2)}
             }}>
               Scénix
             </h1>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="icon-btn" onClick={() => activeUser ? setActiveMainTab('dashboard') : setShowAuthModal(true)}>
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{activeUser ? 'person_filled' : 'person'}</span>
-              </button>
-              {activeUser && (
+            {activeUser && (
+              <div style={{ position: 'absolute', right: '18px', display: 'flex', alignItems: 'center' }}>
                 <button className="icon-btn" onClick={handleSignOut} title="Sign Out">
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </header>
 
           {/* ── API KEY DRAWER ── */}
@@ -543,6 +539,18 @@ ${JSON.stringify(trackingHistory, null, 2)}
 
           {/* ── MAIN CONTENT ── */}
           <main className="flex-1" style={{ paddingTop: '57px', paddingBottom: '100px' }}>
+            {activeMainTab === 'home' && (
+              <Home 
+                onNavigate={(tab) => {
+                  if (tab === 'coach') {
+                    setActiveMainTab('coach');
+                    setCurrentTab('judge');
+                  } else {
+                    setActiveMainTab(tab);
+                  }
+                }}
+              />
+            )}
             {activeMainTab === 'coach' && (
               <>
                 {/* Evaluate / Metronome segmented toggle */}
@@ -663,6 +671,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
             boxShadow: '0 20px 40px -10px rgba(0,0,0,0.8)',
           }}>
             {[
+              { id: 'home', icon: 'home', label: 'Home' },
               { id: 'coach', icon: 'analytics', label: 'Evaluate' },
               { id: 'feed', icon: 'group', label: 'Community' },
               { id: 'dashboard', icon: 'person', label: 'Profile' },
