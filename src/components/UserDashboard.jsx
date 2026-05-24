@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ThumbsUp, 
-  MessageSquare, 
-  Calendar, 
-  ChevronDown, 
-  ChevronUp, 
-  Award, 
-  Activity, 
-  Folder, 
-  Loader, 
+import {
+  ThumbsUp,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  Loader,
   AlertTriangle,
   Flame,
-  ArrowRight,
-  TrendingUp
+  ArrowRight
 } from 'lucide-react';
 import { supabase } from '../utils/supabaseClient';
 
@@ -127,139 +122,90 @@ export default function UserDashboard({ activeUser, onShowProfileModal, onSwitch
     }));
   };
 
-  // Score circle styling selector
-  const getScoreStyle = (score) => {
-    if (score >= 90) return { border: 'border-emerald-500/30', text: 'text-emerald-400 bg-emerald-500/10', glow: 'shadow-[0_0_12px_rgba(16,185,129,0.25)]' };
-    if (score >= 75) return { border: 'border-cyan-500/30', text: 'text-cyan-400 bg-cyan-500/10', glow: 'shadow-[0_0_12px_rgba(6,182,212,0.25)]' };
-    if (score >= 60) return { border: 'border-amber-500/30', text: 'text-amber-400 bg-amber-500/10', glow: 'shadow-[0_0_12px_rgba(245,158,11,0.25)]' };
-    return { border: 'border-rose-500/30', text: 'text-rose-400 bg-rose-500/10', glow: 'shadow-[0_0_12px_rgba(239,68,68,0.25)]' };
-  };
 
   // Custom markdown critique formatter
   const formatCritiqueMarkdown = (text) => {
     if (!text) return null;
-    
-    // Strip SCORE: line if present
     const cleanedText = text.replace(/^SCORE:\s*\d+\/\d+\s*/i, '').trim();
 
     return cleanedText.split('\n').map((line, idx) => {
       const trimmed = line.trim();
-      if (!trimmed) return <div key={idx} className="h-2" />;
+      if (!trimmed) return <div key={idx} style={{ height: 6 }} />;
 
-      // Section headers (###)
       if (trimmed.startsWith('###')) {
-        const title = trimmed.replace('###', '').trim();
-        return (
-          <h4 key={idx} className="font-orbitron font-bold text-xs text-cyan-400 uppercase tracking-widest mt-4 mb-2 border-b border-slate-900 pb-1">
-            {title}
-          </h4>
-        );
+        return <p key={idx} className="eyebrow" style={{ marginTop: 12, marginBottom: 4 }}>{trimmed.replace('###', '').trim()}</p>;
       }
 
-      // Separator
       if (trimmed.includes('=== CONDENSED ===')) {
-        return (
-          <div key={idx} className="flex items-center gap-2 my-4">
-            <div className="flex-1 h-[1px] bg-slate-800" />
-            <span className="text-[10px] font-orbitron font-bold text-slate-500 tracking-wider">CONDENSED SUMMARY</span>
-            <div className="flex-1 h-[1px] bg-slate-800" />
-          </div>
-        );
+        return <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '12px 0' }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--aura-border-soft)' }} />
+          <span className="eyebrow-muted" style={{ fontSize: 8 }}>Condensed</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--aura-border-soft)' }} />
+        </div>;
       }
 
-      // Bullet points
       if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-        const content = trimmed.substring(1).trim();
-        return (
-          <div key={idx} className="flex items-start gap-2 my-2 text-slate-300 text-xs pl-1">
-            <span className="text-cyan-400 select-none mt-0.5 shrink-0">➔</span>
-            <span className="leading-relaxed">{content}</span>
-          </div>
-        );
+        return <div key={idx} style={{ display: 'flex', gap: 6, margin: '4px 0' }}>
+          <span style={{ color: 'var(--aura-gold)', flexShrink: 0, marginTop: 1 }}>›</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--aura-cream)', lineHeight: 1.5 }}>{trimmed.substring(1).trim()}</span>
+        </div>;
       }
 
-      // Standard text block
-      return (
-        <p key={idx} className="text-slate-400 text-xs leading-relaxed my-1.5">
-          {trimmed}
-        </p>
-      );
+      return <p key={idx} style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--aura-muted)', lineHeight: 1.5, margin: '3px 0' }}>{trimmed}</p>;
     });
   };
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-6">
+      {/* HEADER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '16px', borderBottom: '1px solid var(--aura-border-soft)' }}>
         <div>
-          <div className="text-xs font-orbitron font-semibold tracking-widest text-cyan-400 uppercase mb-1">
-            Performance Vault & History
-          </div>
-          <h1 className="text-3xl font-orbitron font-black text-slate-100 tracking-tight glow-cyan">
-            MY DASHBOARD
+          <p className="eyebrow-muted" style={{ marginBottom: '6px' }}>Performance Vault & History</p>
+          <h1 className="h-title" style={{ fontSize: '28px', margin: 0 }}>
+            My Dashboard
           </h1>
         </div>
 
         {activeUser && (
-          <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 px-4 py-2.5 rounded-xl text-xs">
-            <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-slate-400 font-orbitron">ATHLETE:</span>
-            <span className="font-bold text-slate-200 font-orbitron">{activeUser.username}</span>
+          <div className="pill pill-emerald">
+            <span className="dot" />
+            {activeUser.username}
           </div>
         )}
       </div>
 
       {/* REGISTRATION DRAWER FOR GUESTS */}
       {!activeUser && isSupabaseConfigured && (
-        <div className="glassmorphism rounded-2xl border border-cyan-500/20 p-8 text-center text-slate-400 flex flex-col items-center justify-center gap-5 my-8">
-          <Flame className="h-12 w-12 text-cyan-400 animate-pulse" />
-          <div className="flex flex-col gap-1.5 max-w-md">
-            <h3 className="font-orbitron font-bold text-lg text-slate-200 uppercase tracking-wider">
-              Profile Setup Required
-            </h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Your dashboard records community feedback, comments, and Gemini sports science reviews. Configure your active username to initialize your ledger.
-            </p>
-          </div>
-          <button
-            onClick={onShowProfileModal}
-            className="flex items-center gap-2 px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-orbitron font-bold text-xs tracking-wider rounded-xl transition-all duration-300 shadow-lg hover:shadow-cyan-500/20 active:scale-95"
-          >
-            CREATE ACTIVE PROFILE
-            <ArrowRight className="h-4 w-4" />
+        <div className="card" style={{ textAlign: 'center', padding: '48px 24px', borderLeft: '3px solid var(--aura-cyan)' }}>
+          <Flame size={32} style={{ color: 'var(--aura-cyan)', margin: '0 auto 16px' }} />
+          <div className="h-title" style={{ fontSize: 18, marginBottom: 8 }}>Profile Setup Required</div>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--aura-muted)', marginBottom: 20, maxWidth: 340, margin: '0 auto 20px' }}>
+            Sign in to access your performance vault, community posts, and AI review history.
+          </p>
+          <button className="btn-gold" style={{ width: 'auto', padding: '12px 24px', margin: '0 auto', display: 'inline-flex' }} onClick={onShowProfileModal}>
+            Create Profile <ArrowRight size={13} />
           </button>
         </div>
       )}
 
       {/* ERROR MESSAGE */}
       {error && (
-        <div className="glassmorphism rounded-2xl border border-rose-500/20 p-6 flex items-start gap-4 text-slate-300">
-          <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
-            <AlertTriangle className="h-5 w-5" />
-          </div>
+        <div className="card" style={{ borderLeft: '3px solid var(--aura-rose)', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <AlertTriangle size={14} style={{ color: 'var(--aura-rose)', flexShrink: 0, marginTop: 2 }} />
           <div>
-            <h3 className="font-orbitron font-bold text-sm text-slate-200 uppercase tracking-wide">
-              Data Fetch Failed
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">{error}</p>
-            <button 
-              onClick={fetchUserData}
-              className="mt-3 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold font-orbitron border border-slate-700 transition-colors"
-            >
-              RETRY FETCH
-            </button>
+            <div className="label-syne" style={{ fontSize: 11, color: 'var(--aura-rose)', marginBottom: 4 }}>Data Fetch Failed</div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-muted)', marginBottom: 10 }}>{error}</p>
+            <button className="btn-ghost" style={{ padding: '6px 12px', fontSize: 10 }} onClick={fetchUserData}>Retry</button>
           </div>
         </div>
       )}
 
       {/* LOADING STATE */}
       {loading && isSupabaseConfigured && activeUser && (
-        <div className="flex flex-col items-center justify-center py-24 gap-4">
-          <Loader className="h-10 w-10 text-cyan-400 animate-spin" />
-          <span className="text-xs font-orbitron font-bold text-slate-500 tracking-widest uppercase">
-            COMPILING PERSONAL LEDGER...
-          </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0', gap: 12 }}>
+          <Loader size={24} style={{ color: 'var(--aura-cyan)', animation: 'auraSpin 1s linear infinite' }} />
+          <span className="eyebrow-muted">Loading vault...</span>
         </div>
       )}
 
@@ -268,122 +214,58 @@ export default function UserDashboard({ activeUser, onShowProfileModal, onSwitch
         <div className="flex flex-col gap-8">
           
           {/* STATS OVERVIEW CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            
-            <div className="glassmorphism rounded-2xl border border-slate-800/80 p-5 flex items-center justify-between shadow-lg relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-3 text-cyan-500/10 group-hover:text-cyan-500/20 transition-colors pointer-events-none">
-                <Folder className="h-16 w-16" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {[
+              { v: stats.postCount, l: 'Posts Shared', watermark: '📹' },
+              { v: stats.totalLikes, l: 'Total Likes', watermark: '♥' },
+              { v: stats.totalComments, l: 'Comments', watermark: '💬' },
+            ].map((s) => (
+              <div key={s.l} className="card" style={{ position: 'relative', overflow: 'hidden', padding: '16px 14px' }}>
+                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 500, fontSize: 30, color: 'var(--aura-gold)', lineHeight: 1 }}>{s.v}</div>
+                <div className="eyebrow-muted" style={{ marginTop: 4, fontSize: 9 }}>{s.l}</div>
+                <div style={{ position: 'absolute', right: -4, bottom: -12, fontSize: 56, opacity: 0.04, pointerEvents: 'none', fontFamily: 'DM Sans', fontWeight: 800, color: 'var(--aura-gold)' }}>{s.watermark}</div>
               </div>
-              <div className="flex flex-col gap-1 z-10">
-                <span className="text-[10px] font-orbitron font-bold text-slate-500 tracking-widest uppercase">POSTS SHARED</span>
-                <span className="text-3xl font-orbitron font-extrabold text-slate-100">{stats.postCount}</span>
-                <span className="text-[9px] text-slate-400 mt-1">Videos & audio track files</span>
-              </div>
-            </div>
-
-            <div className="glassmorphism rounded-2xl border border-slate-800/80 p-5 flex items-center justify-between shadow-lg relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-3 text-emerald-500/10 group-hover:text-emerald-500/20 transition-colors pointer-events-none">
-                <ThumbsUp className="h-16 w-16" />
-              </div>
-              <div className="flex flex-col gap-1 z-10">
-                <span className="text-[10px] font-orbitron font-bold text-slate-500 tracking-widest uppercase">ACCUMULATED LIKES</span>
-                <span className="text-3xl font-orbitron font-extrabold text-slate-100">{stats.totalLikes}</span>
-                <span className="text-[9px] text-slate-400 mt-1">Community positive reactions</span>
-              </div>
-            </div>
-
-            <div className="glassmorphism rounded-2xl border border-slate-800/80 p-5 flex items-center justify-between shadow-lg relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-3 text-cyan-500/10 group-hover:text-cyan-500/20 transition-colors pointer-events-none">
-                <MessageSquare className="h-16 w-16" />
-              </div>
-              <div className="flex flex-col gap-1 z-10">
-                <span className="text-[10px] font-orbitron font-bold text-slate-500 tracking-widest uppercase">TOTAL COMMENTS</span>
-                <span className="text-3xl font-orbitron font-extrabold text-slate-100">{stats.totalComments}</span>
-                <span className="text-[9px] text-slate-400 mt-1">Replies on shared submissions</span>
-              </div>
-            </div>
-
+            ))}
           </div>
 
-          {/* SPLIT-SCREEN VIEW COLUMNS */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* LEFT COLUMN: My Community Posts (Columns 1-6) */}
-            <div className="lg:col-span-6 flex flex-col gap-4">
-              <div className="flex items-center gap-2 border-b border-slate-900 pb-2.5">
-                <TrendingUp className="h-4 w-4 text-cyan-400" />
-                <h2 className="font-orbitron font-black text-sm text-slate-200 tracking-wider uppercase">
-                  My Community Posts ({posts.length})
-                </h2>
-              </div>
+          {/* TWO COLUMNS */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+
+            {/* LEFT: My Community Posts */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="section-head">My Posts ({posts.length})</div>
 
               {posts.length === 0 ? (
-                <div className="glassmorphism rounded-2xl border border-slate-850 p-8 text-center text-slate-500 text-xs italic flex flex-col items-center justify-center gap-3">
-                  <span>You haven't shared any community posts yet.</span>
-                  <button
-                    onClick={() => onSwitchTab('feed')}
-                    className="not-italic px-4 py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-cyan-400 font-orbitron font-bold text-[10px] tracking-wider rounded-xl transition-colors"
-                  >
-                    GO TO FEED TO POST
-                  </button>
+                <div className="card" style={{ textAlign: 'center', padding: '32px 16px' }}>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-muted)', marginBottom: 14 }}>No community posts yet.</p>
+                  <button className="btn-ghost" style={{ fontSize: 10, padding: '8px 14px' }} onClick={() => onSwitchTab('feed')}>Go to Feed</button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-1">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 560, overflowY: 'auto' }}>
                   {posts.map((post) => {
                     const isVocals = post.description?.startsWith('[Vocals]') || post.media_type === 'audio';
                     let cleanDesc = post.description || '';
                     if (cleanDesc.startsWith('[Vocals]') || cleanDesc.startsWith('[Dancing]')) {
                       cleanDesc = cleanDesc.replace(/^\[(Vocals|Dancing)\]\s*/, '');
                     }
-
                     return (
-                      <div key={post.id} className="glassmorphism rounded-xl border border-slate-850 p-4 hover:border-slate-800 transition-colors flex flex-col gap-3">
-                        <div className="flex justify-between items-start gap-2">
-                          <h4 className="font-bold text-sm text-slate-200 truncate pr-1">
-                            {post.title}
-                          </h4>
-                          <span className={`text-[8px] font-orbitron font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${
-                            isVocals ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          }`}>
-                            {isVocals ? 'Vocals' : 'Dancing'}
-                          </span>
+                      <div key={post.id} className="card" style={{ padding: '12px 14px', borderLeft: `3px solid ${isVocals ? 'var(--aura-cyan)' : 'var(--aura-emerald)'}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                          <div className="label-syne" style={{ fontSize: 12, color: 'var(--aura-body)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.title}</div>
+                          <span className={isVocals ? 'pill pill-cyan' : 'pill pill-emerald'} style={{ fontSize: 8, flexShrink: 0 }}>{isVocals ? 'Vocals' : 'Dancing'}</span>
                         </div>
-
-                        {/* Description Preview */}
-                        {cleanDesc && (
-                          <p className="text-slate-400 text-xs line-clamp-2 leading-relaxed">
-                            {cleanDesc}
-                          </p>
-                        )}
-
-                        {/* Embedded compact video/audio stream */}
-                        <div className="w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-950 mt-1">
-                          {post.media_type === 'video' ? (
-                            <video 
-                              controls 
-                              className="w-full max-h-[180px] bg-slate-950 object-contain"
-                              src={post.media_url}
-                            />
-                          ) : (
-                            <audio 
-                              controls 
-                              className="w-full focus:outline-none p-2 scale-90"
-                              src={post.media_url}
-                            />
-                          )}
+                        {cleanDesc && <p style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--aura-muted)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: 8 }}>{cleanDesc}</p>}
+                        <div style={{ borderRadius: 3, overflow: 'hidden', border: '1px solid var(--aura-border-soft)' }}>
+                          {post.media_type === 'video'
+                            ? <video controls style={{ width: '100%', maxHeight: 160, background: 'var(--aura-bg)', display: 'block' }} src={post.media_url} />
+                            : <audio controls style={{ width: '100%' }} src={post.media_url} />}
                         </div>
-
-                        {/* Footer counts */}
-                        <div className="flex items-center justify-between text-[10px] font-orbitron text-slate-500 border-t border-slate-900 pt-2 mt-1">
-                          <div className="flex items-center gap-3">
-                            <span className="flex items-center gap-1">
-                              <ThumbsUp className="h-3 w-3 text-cyan-500/60" /> {post.likes_count}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MessageSquare className="h-3 w-3 text-cyan-500/60" /> {post.comments_count}
-                            </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                          <div style={{ display: 'flex', gap: 10, fontFamily: 'DM Sans', fontSize: 10, color: 'var(--aura-muted)' }}>
+                            <span><ThumbsUp size={10} style={{ marginRight: 3 }} />{post.likes_count}</span>
+                            <span><MessageSquare size={10} style={{ marginRight: 3 }} />{post.comments_count}</span>
                           </div>
-                          <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                          <span className="eyebrow-muted" style={{ fontSize: 8 }}>{new Date(post.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                     );
@@ -392,77 +274,41 @@ export default function UserDashboard({ activeUser, onShowProfileModal, onSwitch
               )}
             </div>
 
-            {/* RIGHT COLUMN: My AI Review Vault (Columns 7-12) */}
-            <div className="lg:col-span-6 flex flex-col gap-4">
-              <div className="flex items-center gap-2 border-b border-slate-900 pb-2.5">
-                <Award className="h-4 w-4 text-emerald-400" />
-                <h2 className="font-orbitron font-black text-sm text-slate-200 tracking-wider uppercase">
-                  My AI Review Vault ({reviews.length})
-                </h2>
-              </div>
+            {/* RIGHT: AI Review Vault */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="section-head">AI Vault ({reviews.length})</div>
 
               {reviews.length === 0 ? (
-                <div className="glassmorphism rounded-2xl border border-slate-850 p-8 text-center text-slate-500 text-xs italic flex flex-col items-center justify-center gap-3">
-                  <span>No athletic reviews logged in your vault yet.</span>
-                  <button
-                    onClick={() => onSwitchTab('coach')}
-                    className="not-italic px-4 py-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-emerald-400 font-orbitron font-bold text-[10px] tracking-wider rounded-xl transition-colors"
-                  >
-                    RUN FIRST COACH ASSESSMENT
-                  </button>
+                <div className="card" style={{ textAlign: 'center', padding: '32px 16px' }}>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-muted)', marginBottom: 14 }}>No AI reviews yet.</p>
+                  <button className="btn-ghost" style={{ fontSize: 10, padding: '8px 14px' }} onClick={() => onSwitchTab('coach')}>Run Assessment</button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-1">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 560, overflowY: 'auto' }}>
                   {reviews.map((review) => {
                     const isExpanded = expandedReviews[review.id];
-                    const scoreStyle = getScoreStyle(review.score);
-
+                    const s = review.score;
+                    const scoreColor = s >= 85 ? 'var(--aura-emerald)' : s >= 70 ? 'var(--aura-cyan)' : s >= 55 ? 'var(--aura-amber)' : 'var(--aura-rose)';
                     return (
-                      <div 
-                        key={review.id} 
-                        className="glassmorphism rounded-xl border border-slate-850 hover:border-slate-800 transition-all duration-300 overflow-hidden"
-                      >
-                        {/* Header Block */}
-                        <div 
-                          onClick={() => toggleReview(review.id)}
-                          className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-900/30 transition-colors"
-                        >
-                          <div className="flex flex-col gap-1 min-w-0">
-                            <h4 className="font-orbitron font-bold text-sm text-slate-200 truncate uppercase">
-                              {review.exercise_type}
-                            </h4>
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                              <Calendar className="h-3 w-3 shrink-0" />
-                              <span>{formatTime(review.created_at)}</span>
-                            </div>
+                      <div key={review.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                        <div onClick={() => toggleReview(review.id)} style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="label-syne" style={{ fontSize: 12, color: 'var(--aura-body)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{review.exercise_type}</div>
+                            <div className="eyebrow-muted" style={{ fontSize: 9, marginTop: 2 }}>{formatTime(review.created_at)}</div>
                           </div>
-
-                          {/* Score Pill / Circle */}
-                          <div className="flex items-center gap-3 shrink-0">
-                            <div className={`h-8 w-8 rounded-full border flex items-center justify-center font-orbitron font-extrabold text-xs ${scoreStyle.border} ${scoreStyle.text} ${scoreStyle.glow}`}>
-                              {review.score}
-                            </div>
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4 text-slate-400" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-slate-400" />
-                            )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', border: `1px solid ${scoreColor}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cormorant Garamond, serif', fontSize: 14, fontWeight: 600, color: scoreColor }}>{s}</div>
+                            {isExpanded ? <ChevronUp size={14} style={{ color: 'var(--aura-muted)' }} /> : <ChevronDown size={14} style={{ color: 'var(--aura-muted)' }} />}
                           </div>
                         </div>
-
-                        {/* Collapsible Critique Content */}
                         {isExpanded && (
-                          <div className="px-4 pb-4 pt-2 border-t border-slate-900/80 bg-slate-950/40 flex flex-col gap-3">
+                          <div style={{ borderTop: '1px solid var(--aura-border-soft)', padding: '12px 14px', background: 'var(--aura-bg)' }}>
                             {review.media_url && (
-                              <div className="w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900 mt-2">
-                                <video 
-                                  controls 
-                                  className="w-full max-h-[220px] bg-slate-950 object-contain"
-                                  src={review.media_url}
-                                />
+                              <div style={{ borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
+                                <video controls style={{ width: '100%', maxHeight: 200, background: 'var(--aura-bg)', display: 'block' }} src={review.media_url} />
                               </div>
                             )}
-                            <div className="font-sans">
+                            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-cream)', lineHeight: 1.6 }}>
                               {formatCritiqueMarkdown(review.feedback_markdown)}
                             </div>
                           </div>
@@ -481,8 +327,8 @@ export default function UserDashboard({ activeUser, onShowProfileModal, onSwitch
 
       {/* RENDER INSTRUCTION IF NOT CONFIGURED AT ALL */}
       {!isSupabaseConfigured && (
-        <div className="glassmorphism rounded-2xl border border-slate-850 p-8 text-center text-slate-500 text-xs italic">
-          Please refer to the setup card above to connect your local environment variables to your database client.
+        <div className="card" style={{ textAlign: 'center', padding: '32px' }}>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--aura-muted)', fontStyle: 'italic' }}>Configure Supabase environment variables to enable dashboard features.</p>
         </div>
       )}
 

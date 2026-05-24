@@ -392,324 +392,189 @@ export default function CommunityFeed({ activeUser, onShowProfileModal }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* HEADER BANNER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-6">
+      {/* HEADER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '16px', borderBottom: '1px solid var(--aura-border-soft)' }}>
         <div>
-          <div className="text-xs font-orbitron font-semibold tracking-widest text-cyan-400 uppercase mb-1">
-            Global Athletes Sandbox
-          </div>
-          <h1 className="text-3xl font-orbitron font-black text-slate-100 tracking-tight glow-cyan">
-            COMMUNITY FEED
+          <p className="eyebrow-muted" style={{ marginBottom: '6px' }}>Community Sandbox</p>
+          <h1 className="h-title" style={{ fontSize: '28px', margin: 0 }}>
+            Community Feed
           </h1>
         </div>
 
         {isSupabaseConfigured && (
-          <button
-            onClick={() => {
-              if (!activeUser) {
-                onShowProfileModal();
-              } else {
-                setShowCreateModal(true);
-              }
-            }}
-            className="flex items-center gap-2 px-5 py-3 bg-cyan-500 hover:bg-cyan-400 border border-cyan-400 text-slate-950 font-orbitron font-bold tracking-wider rounded-xl transition-all duration-300 active:scale-95 hover:shadow-cyan-500/20 shadow-lg"
+          <button className="btn-ghost" style={{ padding: '10px 16px', display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--aura-gold)', borderColor: 'rgba(255,225,109,0.3)' }}
+            onClick={() => { if (!activeUser) { onShowProfileModal(); } else { setShowCreateModal(true); } }}
           >
-            <Plus className="h-4 w-4" />
-            CREATE POST
+            <Plus size={14} />
+            New Post
           </button>
         )}
       </div>
 
       {/* MISSING CONFIGURATION WARNING */}
       {!isSupabaseConfigured && (
-        <div className="glassmorphism-glow rounded-2xl border border-amber-500/20 p-6 flex flex-col gap-4 text-slate-300">
-          <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <h3 className="font-orbitron font-bold text-lg text-slate-100 tracking-wide uppercase">
-              Supabase Configuration Required
-            </h3>
+        <div className="card" style={{ borderLeft: '3px solid var(--aura-amber)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <AlertTriangle size={14} style={{ color: 'var(--aura-amber)' }} />
+            <div className="label-syne" style={{ fontSize: 12, color: 'var(--aura-amber)' }}>Supabase Configuration Required</div>
           </div>
-          <p className="text-sm leading-relaxed text-slate-400">
-            The Community Feed and User Dashboard require integration with a Supabase database. To start sharing posts and logging AI reviews:
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--aura-cream)', lineHeight: 1.6, marginBottom: 12 }}>
+            Community Feed requires a Supabase database. Add your keys to the <code style={{ color: 'var(--aura-cyan)', fontSize: 11 }}>.env</code> file:
           </p>
-          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 flex flex-col gap-2">
-            <div>1. Set up a free Supabase project at <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">supabase.com</a>.</div>
-            <div>2. Execute the schema queries in <span className="text-emerald-400">supabase_schema.sql</span> via the SQL Editor.</div>
-            <div>3. Add the following keys to your project's local <span className="text-cyan-400">.env</span> file:</div>
-            <div className="bg-slate-900 p-2.5 rounded border border-slate-800 mt-1 select-all text-slate-400">
-              VITE_SUPABASE_URL=your_supabase_project_url<br />
-              VITE_SUPABASE_ANON_KEY=your_supabase_anon_public_key
-            </div>
+          <div style={{ background: 'var(--aura-bg)', border: '1px solid var(--aura-border-soft)', borderRadius: 4, padding: '10px 12px', fontFamily: 'monospace', fontSize: 11, color: 'var(--aura-muted)' }}>
+            VITE_SUPABASE_URL=your_url<br />
+            VITE_SUPABASE_ANON_KEY=your_key
           </div>
         </div>
       )}
 
       {/* ERROR MESSAGE */}
       {error && (
-        <div className="glassmorphism rounded-2xl border border-rose-500/20 p-6 flex items-start gap-4 text-slate-300">
-          <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
-            <AlertTriangle className="h-5 w-5" />
-          </div>
+        <div className="card" style={{ borderLeft: '3px solid var(--aura-rose)', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <AlertTriangle size={14} style={{ color: 'var(--aura-rose)', flexShrink: 0, marginTop: 2 }} />
           <div>
-            <h3 className="font-orbitron font-bold text-sm text-slate-200 uppercase tracking-wide">
-              Database Sync Failed
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">{error}</p>
-            <button 
-              onClick={fetchPosts}
-              className="mt-3 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold font-orbitron border border-slate-700 transition-colors"
-            >
-              RETRY CONNECTION
-            </button>
+            <div className="label-syne" style={{ fontSize: 11, color: 'var(--aura-rose)', marginBottom: 4 }}>Database Sync Failed</div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-muted)', marginBottom: 10 }}>{error}</p>
+            <button className="btn-ghost" style={{ padding: '6px 12px', fontSize: 10 }} onClick={fetchPosts}>Retry</button>
           </div>
         </div>
       )}
 
       {/* FEED LOADING */}
       {loading && isSupabaseConfigured && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader className="h-10 w-10 text-cyan-400 animate-spin" />
-          <span className="text-xs font-orbitron font-bold text-slate-500 tracking-widest uppercase">
-            DOWNLOADING TIMELINE...
-          </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 12 }}>
+          <Loader size={24} style={{ color: 'var(--aura-cyan)', animation: 'auraSpin 1s linear infinite' }} />
+          <span className="eyebrow-muted">Loading feed...</span>
         </div>
       )}
 
       {/* EMPTY FEED STATE */}
       {!loading && posts.length === 0 && isSupabaseConfigured && (
-        <div className="glassmorphism rounded-2xl border border-slate-800 p-12 text-center text-slate-400 flex flex-col items-center justify-center gap-4">
-          <MessageCircle className="h-12 w-12 text-slate-600 animate-pulse" />
-          <div className="flex flex-col gap-1">
-            <h3 className="font-orbitron font-bold text-lg text-slate-200 uppercase tracking-wider">
-              Feed Is Silent
-            </h3>
-            <p className="text-sm text-slate-500 max-w-sm">
-              Be the first athlete to upload a biomechanical clip or vocal metric to the sandbox.
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              if (!activeUser) {
-                onShowProfileModal();
-              } else {
-                setShowCreateModal(true);
-              }
-            }}
-            className="mt-2 px-5 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 font-orbitron font-bold text-xs tracking-wider rounded-xl transition-all"
+        <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+          <MessageCircle size={32} style={{ color: 'var(--aura-muted)', margin: '0 auto 16px' }} />
+          <div className="h-title" style={{ fontSize: 18, marginBottom: 8 }}>Feed Is Silent</div>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--aura-muted)', marginBottom: 20 }}>
+            Be the first to share a performance clip.
+          </p>
+          <button className="btn-gold" style={{ width: 'auto', padding: '10px 20px', margin: '0 auto' }}
+            onClick={() => { if (!activeUser) { onShowProfileModal(); } else { setShowCreateModal(true); } }}
           >
-            PUBLISH FIRST POST
+            <Plus size={13} /> Publish First Post
           </button>
         </div>
       )}
 
       {/* FEED LIST */}
       {!loading && posts.length > 0 && (
-        <div className="flex flex-col gap-6">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {posts.map((post) => {
-            // Check tag matching (Dancing or Vocals)
             const isVocals = post.description?.startsWith('[Vocals]') || post.media_type === 'audio';
             const displayTag = isVocals ? 'Vocals' : 'Dancing';
-            
-            // Clean description text (strip out [Tag])
             let cleanDesc = post.description || '';
             if (cleanDesc.startsWith('[Vocals]') || cleanDesc.startsWith('[Dancing]')) {
               cleanDesc = cleanDesc.replace(/^\[(Vocals|Dancing)\]\s*/, '');
             }
-
             const isExpanded = expandedDescriptions[post.id];
             const isCommentsOpen = expandedComments[post.id];
             const comments = commentsData[post.id] || [];
             const isCommentLoading = loadingComments[post.id];
+            const tagClass = isVocals ? 'pill pill-cyan' : 'pill pill-emerald';
 
             return (
-              <div 
-                key={post.id} 
-                className="glassmorphism rounded-2xl border border-slate-800 shadow-2xl overflow-hidden hover:border-slate-700/80 transition-all duration-300"
-              >
-                {/* CARD HEADER */}
-                <div className="px-6 py-4 border-b border-slate-900/60 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    {/* Glowing Avatar */}
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border border-cyan-500/30 flex items-center justify-center font-orbitron font-bold text-sm text-cyan-300">
+              <div key={post.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                {/* Card header */}
+                <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--aura-border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(110,231,255,0.08)', border: '1px solid rgba(110,231,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--aura-cyan)', flexShrink: 0 }}>
                       {post.author_name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-bold text-sm text-slate-100 flex items-center gap-2">
+                      <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, color: 'var(--aura-body)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         {post.author_name}
                         {activeUser && post.user_id === activeUser.id && (
-                          <span className="text-[9px] font-orbitron bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded">
-                            YOU
-                          </span>
+                          <span className="pill" style={{ fontSize: 8, padding: '2px 6px', color: 'var(--aura-cyan)', borderColor: 'rgba(110,231,255,0.3)' }}>you</span>
                         )}
                       </div>
-                      <div className="text-[10px] text-slate-500 font-medium">
-                        {formatTime(post.created_at)}
-                      </div>
+                      <div className="eyebrow-muted" style={{ fontSize: 9 }}>{formatTime(post.created_at)}</div>
                     </div>
                   </div>
-
-                  {/* MEDIUM TAG */}
-                  <span className={`text-[10px] font-orbitron font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${
-                    isVocals 
-                      ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20 shadow-[0_0_8px_rgba(6,182,212,0.15)]' 
-                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
-                  }`}>
-                    {displayTag}
-                  </span>
+                  <span className={tagClass} style={{ fontSize: 9 }}><span className="dot" />{displayTag}</span>
                 </div>
 
-                {/* CARD BODY */}
-                <div className="p-6 flex flex-col gap-4">
-                  <h3 className="text-lg font-orbitron font-bold text-slate-100 leading-tight">
-                    {post.title}
-                  </h3>
+                {/* Card body */}
+                <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className="label-syne" style={{ fontSize: 14, color: 'var(--aura-body)' }}>{post.title}</div>
 
-                  {/* MEDIA PLAYER */}
-                  <div className="w-full relative rounded-xl overflow-hidden border border-slate-950 bg-slate-950 shadow-inner">
+                  {/* Media player */}
+                  <div style={{ borderRadius: 4, overflow: 'hidden', border: '1px solid var(--aura-border-soft)', background: 'var(--aura-bg)' }}>
                     {post.media_type === 'video' ? (
-                      <video 
-                        controls 
-                        className="w-full max-h-[420px] bg-slate-950 rounded-lg"
-                        src={post.media_url}
-                      />
+                      <video controls style={{ width: '100%', maxHeight: 380, background: 'var(--aura-bg)', display: 'block' }} src={post.media_url} />
                     ) : (
-                      /* Enhanced Audio Player Container */
-                      <div className="p-6 flex flex-col items-center justify-center gap-4 bg-slate-950/80">
-                        <div className="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 animate-[spin_8s_linear_infinite]">
-                          <Music className="h-6 w-6" />
+                      <div style={{ padding: '24px 18px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(110,231,255,0.06)', border: '1px solid rgba(110,231,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--aura-cyan)' }}>
+                          <Music size={20} />
                         </div>
-                        <audio 
-                          controls 
-                          className="w-full focus:outline-none" 
-                          src={post.media_url}
-                        />
+                        <audio controls style={{ width: '100%' }} src={post.media_url} />
                       </div>
                     )}
                   </div>
 
-                  {/* DESCRIPTION (Expandable) */}
+                  {/* Description */}
                   {cleanDesc && (
-                    <div className="border-t border-slate-900/60 pt-4 mt-2">
-                      <p className={`text-slate-300 text-sm leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
-                        {cleanDesc}
-                      </p>
-                      {cleanDesc.length > 150 && (
-                        <button
-                          onClick={() => toggleDescription(post.id)}
-                          className="flex items-center gap-1 mt-2 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
-                        >
-                          {isExpanded ? (
-                            <>Show Less <ChevronUp className="h-3 w-3" /></>
-                          ) : (
-                            <>Read Full Description <ChevronDown className="h-3 w-3" /></>
-                          )}
+                    <div style={{ borderTop: '1px solid var(--aura-border-soft)', paddingTop: 12 }}>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--aura-cream)', lineHeight: 1.6, margin: 0, overflow: isExpanded ? 'visible' : 'hidden', display: '-webkit-box', WebkitLineClamp: isExpanded ? 'unset' : 2, WebkitBoxOrient: 'vertical' }}>{cleanDesc}</p>
+                      {cleanDesc.length > 120 && (
+                        <button onClick={() => toggleDescription(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'var(--aura-cyan)', padding: 0 }}>
+                          {isExpanded ? <><ChevronUp size={11} /> Less</> : <><ChevronDown size={11} /> More</>}
                         </button>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* CARD FOOTER */}
-                <div className="px-6 py-4 bg-slate-900/30 border-t border-slate-900/60 flex items-center justify-between gap-6">
-                  
-                  {/* Upvote / Downvote buttons */}
-                  <div className="flex bg-slate-950 rounded-xl border border-slate-800 p-1 font-orbitron select-none shadow-sm">
-                    <button
-                      onClick={() => handleVote(post.id, 'like')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-cyan-400 hover:bg-slate-900 transition-all cursor-pointer"
-                      title="Like Post"
-                    >
-                      <ThumbsUp className="h-3.5 w-3.5" />
-                      <span>{post.likes_count}</span>
+                {/* Card footer */}
+                <div style={{ padding: '12px 18px', borderTop: '1px solid var(--aura-border-soft)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ display: 'flex', background: 'var(--aura-bg)', border: '1px solid var(--aura-border-soft)', borderRadius: 999, overflow: 'hidden' }}>
+                    <button onClick={() => handleVote(post.id, 'like')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: 'var(--aura-muted)' }}>
+                      <ThumbsUp size={11} /> {post.likes_count}
                     </button>
-                    <div className="w-[1px] bg-slate-800 my-1.5" />
-                    <button
-                      onClick={() => handleVote(post.id, 'dislike')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-rose-400 hover:bg-slate-900 transition-all cursor-pointer"
-                      title="Dislike Post"
-                    >
-                      <ThumbsDown className="h-3.5 w-3.5" />
-                      <span>{post.dislikes_count}</span>
+                    <div style={{ width: 1, background: 'var(--aura-border-soft)' }} />
+                    <button onClick={() => handleVote(post.id, 'dislike')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: 'var(--aura-muted)' }}>
+                      <ThumbsDown size={11} /> {post.dislikes_count}
                     </button>
                   </div>
-
-                  {/* Comment button */}
-                  <button
-                    onClick={() => toggleComments(post.id)}
-                    className={`flex items-center gap-2 px-4 py-2 border rounded-xl font-orbitron font-bold text-xs tracking-wider transition-all duration-300 ${
-                      isCommentsOpen 
-                        ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-md shadow-cyan-500/5'
-                        : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                    }`}
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>COMMENTS ({post.comments_count})</span>
-                    {isCommentsOpen ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                  <button onClick={() => toggleComments(post.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: isCommentsOpen ? 'rgba(110,231,255,0.08)' : 'var(--aura-bg)', border: `1px solid ${isCommentsOpen ? 'rgba(110,231,255,0.25)' : 'var(--aura-border-soft)'}`, borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: isCommentsOpen ? 'var(--aura-cyan)' : 'var(--aura-muted)' }}>
+                    <MessageSquare size={11} /> {post.comments_count} {isCommentsOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                   </button>
                 </div>
 
-                {/* COMMENTS PANEL DRAWER */}
+                {/* Comments drawer */}
                 {isCommentsOpen && (
-                  <div className="bg-slate-950/60 border-t border-slate-900/80 px-6 py-5 flex flex-col gap-4">
-                    
-                    <h4 className="font-orbitron font-bold text-xs text-slate-400 uppercase tracking-widest border-b border-slate-900 pb-2">
-                      Comments Section
-                    </h4>
-
-                    {/* Comments list */}
-                    <div className="max-h-60 overflow-y-auto pr-2 flex flex-col gap-3 font-sans">
+                  <div style={{ background: 'var(--aura-bg)', borderTop: '1px solid var(--aura-border-soft)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div className="eyebrow-muted" style={{ fontSize: 9 }}>Discussion</div>
+                    <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {isCommentLoading && comments.length === 0 ? (
-                        <div className="flex justify-center py-4">
-                          <Loader className="h-5 w-5 text-cyan-400 animate-spin" />
+                        <div style={{ textAlign: 'center', padding: 16 }}>
+                          <Loader size={16} style={{ color: 'var(--aura-cyan)', animation: 'auraSpin 1s linear infinite' }} />
                         </div>
                       ) : comments.length === 0 ? (
-                        <div className="text-center text-xs text-slate-500 py-4 italic">
-                          No comments posted yet. Start the conversation!
-                        </div>
-                      ) : (
-                        comments.map((comment) => (
-                          <div key={comment.id} className="bg-slate-900/40 border border-slate-900 rounded-xl p-3 flex flex-col gap-1">
-                            <div className="flex justify-between items-center text-[10px]">
-                              <span className="font-bold text-slate-200 font-orbitron">{comment.profiles?.username || 'Anonymous'}</span>
-                              <span className="text-slate-500 font-medium">{formatTime(comment.created_at)}</span>
-                            </div>
-                            <p className="text-slate-300 text-xs mt-0.5 leading-relaxed">{comment.text}</p>
+                        <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-muted)', textAlign: 'center', padding: '12px 0' }}>No comments yet.</p>
+                      ) : comments.map((comment) => (
+                        <div key={comment.id} style={{ background: 'var(--aura-card)', border: '1px solid var(--aura-border-soft)', borderRadius: 4, padding: '10px 12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span className="label-syne" style={{ fontSize: 10, color: 'var(--aura-body)' }}>{comment.profiles?.username || 'Anonymous'}</span>
+                            <span className="eyebrow-muted" style={{ fontSize: 9 }}>{formatTime(comment.created_at)}</span>
                           </div>
-                        ))
-                      )}
+                          <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--aura-cream)', margin: 0, lineHeight: 1.5 }}>{comment.text}</p>
+                        </div>
+                      ))}
                     </div>
-
-                    {/* Comment Form input */}
-                    <div className="flex gap-2 mt-2">
-                      <input
-                        type="text"
-                        value={newCommentTexts[post.id] || ''}
-                        onChange={(e) => setNewCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAddComment(post.id);
-                        }}
-                        placeholder="Add a public comment..."
-                        className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500/50"
-                        disabled={submittingComment[post.id]}
-                      />
-                      <button
-                        onClick={() => handleAddComment(post.id)}
-                        disabled={!newCommentTexts[post.id]?.trim() || submittingComment[post.id]}
-                        className={`p-2 rounded-xl border flex items-center justify-center transition-colors ${
-                          !newCommentTexts[post.id]?.trim()
-                            ? 'border-slate-800 bg-slate-950 text-slate-600 cursor-not-allowed'
-                            : 'border-cyan-500/20 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20'
-                        }`}
-                      >
-                        {submittingComment[post.id] ? (
-                          <Loader className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input type="text" value={newCommentTexts[post.id] || ''} onChange={(e) => setNewCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(post.id); }} placeholder="Add a comment..." className="aura-input" style={{ flex: 1, padding: '10px 12px', fontSize: 12 }} disabled={submittingComment[post.id]} />
+                      <button onClick={() => handleAddComment(post.id)} disabled={!newCommentTexts[post.id]?.trim() || submittingComment[post.id]} className="icon-btn" style={{ flexShrink: 0, color: newCommentTexts[post.id]?.trim() ? 'var(--aura-cyan)' : 'var(--aura-muted)' }}>
+                        {submittingComment[post.id] ? <Loader size={14} style={{ animation: 'auraSpin 1s linear infinite' }} /> : <Send size={14} />}
                       </button>
                     </div>
                   </div>
@@ -722,158 +587,63 @@ export default function CommunityFeed({ activeUser, onShowProfileModal }) {
 
       {/* CREATE POST MODAL DIALOG */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="w-full max-w-lg glassmorphism rounded-2xl border border-slate-800 overflow-hidden shadow-2xl flex flex-col">
-            
+        <div className="modal-overlay">
+          <div className="modal-card">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-900 flex justify-between items-center bg-slate-900/30">
-              <h3 className="font-orbitron font-extrabold text-slate-100 tracking-wider text-sm uppercase">
-                Publish Community Post
-              </h3>
-              <button
-                onClick={() => {
-                  if (!uploading) {
-                    setShowCreateModal(false);
-                    setSelectedFile(null);
-                  }
-                }}
-                className="text-slate-400 hover:text-slate-200 transition-colors"
-                disabled={uploading}
-              >
-                <X className="h-5 w-5" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <div className="eyebrow-muted" style={{ marginBottom: 4 }}>Community Sandbox</div>
+                <div className="h-title" style={{ fontSize: 20 }}>Share Performance</div>
+              </div>
+              <button className="icon-btn" onClick={() => { if (!uploading) { setShowCreateModal(false); setSelectedFile(null); } }} disabled={uploading}>
+                <X size={16} />
               </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleCreatePost} className="p-6 flex flex-col gap-4 font-sans text-xs sm:text-sm">
-              
-              {/* Post Title */}
-              <div className="flex flex-col gap-1.5">
-                <label className="font-orbitron font-bold text-[10px] text-slate-400 tracking-wider uppercase">
-                  Post Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Analyze my symmetry deltas..."
-                  value={postTitle}
-                  onChange={(e) => setPostTitle(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-medium"
-                  disabled={uploading}
-                />
+            <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="eyebrow-muted">Title</label>
+                <input type="text" required placeholder="My performance clip..." value={postTitle} onChange={(e) => setPostTitle(e.target.value)} className="aura-input" disabled={uploading} />
               </div>
 
-              {/* Description */}
-              <div className="flex flex-col gap-1.5">
-                <label className="font-orbitron font-bold text-[10px] text-slate-400 tracking-wider uppercase">
-                  Description / Body Text
-                </label>
-                <textarea
-                  placeholder="I felt my left elbow extension was slightly early during this transition. Let me know what you think!"
-                  rows="3"
-                  value={postDesc}
-                  onChange={(e) => setPostDesc(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-medium resize-none"
-                  disabled={uploading}
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="eyebrow-muted">Description</label>
+                <textarea placeholder="What should the community look for?" rows="3" value={postDesc} onChange={(e) => setPostDesc(e.target.value)} className="aura-input" style={{ resize: 'none' }} disabled={uploading} />
               </div>
 
-              {/* Medium / Tag Selector & File Input Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                {/* Content Medium Tag */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-orbitron font-bold text-[10px] text-slate-400 tracking-wider uppercase">
-                    Content Medium
-                  </label>
-                  <div className="grid grid-cols-2 bg-slate-950 p-1 border border-slate-800 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setContentMedium('Dancing')}
-                      className={`py-1.5 px-2 rounded-lg text-xs font-orbitron font-bold tracking-wider transition-all select-none ${
-                        contentMedium === 'Dancing'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'text-slate-500 hover:text-slate-300 border border-transparent'
-                      }`}
-                      disabled={uploading}
-                    >
-                      DANCING
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setContentMedium('Vocals')}
-                      className={`py-1.5 px-2 rounded-lg text-xs font-orbitron font-bold tracking-wider transition-all select-none ${
-                        contentMedium === 'Vocals'
-                          ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                          : 'text-slate-500 hover:text-slate-300 border border-transparent'
-                      }`}
-                      disabled={uploading}
-                    >
-                      VOCALS
-                    </button>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label className="eyebrow-muted">Medium</label>
+                  <div className="seg">
+                    <button type="button" className={contentMedium === 'Dancing' ? 'active' : ''} onClick={() => setContentMedium('Dancing')} disabled={uploading}>Dancing</button>
+                    <button type="button" className={contentMedium === 'Vocals' ? 'active' : ''} onClick={() => setContentMedium('Vocals')} disabled={uploading}>Vocals</button>
                   </div>
                 </div>
-
-                {/* File picker */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-orbitron font-bold text-[10px] text-slate-400 tracking-wider uppercase">
-                    Select Media File *
-                  </label>
-                  <label className="flex items-center justify-center bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 cursor-pointer transition-colors text-xs font-semibold text-slate-400 select-none text-center">
-                    <span className="truncate">
-                      {selectedFile ? selectedFile.name : 'Choose Video or Audio'}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label className="eyebrow-muted">Media File *</label>
+                  <label className="btn-ghost" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', fontSize: 10 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
+                      {selectedFile ? selectedFile.name : 'Choose File'}
                     </span>
-                    <input
-                      type="file"
-                      required
-                      accept="video/*,audio/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      disabled={uploading}
-                    />
+                    <input type="file" required accept="video/*,audio/*" onChange={handleFileChange} style={{ display: 'none' }} disabled={uploading} />
                   </label>
                 </div>
               </div>
 
-              {/* PROGRESS BAR */}
               {uploading && (
-                <div className="flex flex-col gap-1.5 bg-slate-950/80 p-3 rounded-xl border border-slate-800 mt-2">
-                  <div className="flex justify-between items-center text-[10px] font-orbitron font-bold text-slate-400">
-                    <span>UPLOADING TO SUPABASE BUCKET...</span>
-                    <span className="text-cyan-400">{uploadProgress}%</span>
+                <div style={{ background: 'var(--aura-bg)', border: '1px solid var(--aura-border-soft)', borderRadius: 4, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span className="eyebrow-muted" style={{ fontSize: 9 }}>Uploading...</span>
+                    <span className="eyebrow" style={{ fontSize: 9 }}>{uploadProgress}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                    <div 
-                      className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
+                  <div className="bar"><span style={{ width: `${uploadProgress}%` }} /></div>
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 justify-end mt-4 border-t border-slate-900/80 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setSelectedFile(null);
-                  }}
-                  className="px-5 py-2.5 bg-slate-850 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold font-orbitron text-xs tracking-wider rounded-xl transition-colors"
-                  disabled={uploading}
-                >
-                  CANCEL
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className={`px-6 py-2.5 font-orbitron font-bold text-xs tracking-wider rounded-xl transition-all shadow-md ${
-                    uploading
-                      ? 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed'
-                      : 'bg-cyan-500 hover:bg-cyan-400 border border-cyan-400 text-slate-950 active:scale-95'
-                  }`}
-                >
-                  {uploading ? 'PROCESSING...' : 'UPLOAD & SHARE'}
+              <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                <button type="button" className="btn-ghost" style={{ flex: 1 }} onClick={() => { setShowCreateModal(false); setSelectedFile(null); }} disabled={uploading}>Cancel</button>
+                <button type="submit" className="btn-gold" style={{ flex: 2 }} disabled={uploading}>
+                  {uploading ? <><Loader size={13} style={{ animation: 'auraSpin 1s linear infinite' }} /> Uploading...</> : 'Upload & Share'}
                 </button>
               </div>
             </form>

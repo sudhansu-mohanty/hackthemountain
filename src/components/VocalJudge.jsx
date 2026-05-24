@@ -224,86 +224,63 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
   };
 
   return (
-    <div className="glassmorphism rounded-2xl border border-rose-500/30 p-6 shadow-xl relative overflow-hidden group">
-      {/* Background ambient glow based on state */}
-      <div className={`absolute -inset-10 bg-gradient-to-r blur-3xl opacity-10 pointer-events-none transition-colors duration-500 ${isJudging ? 'from-rose-500 to-fuchsia-500' : 'from-slate-500 to-slate-800'
-        }`} />
+    <div className="card" style={{ border: `1px solid ${isJudging ? 'rgba(255,143,163,0.4)' : 'var(--aura-border-soft)'}`, transition: 'border-color 0.3s' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Mic size={16} style={{ color: isJudging ? 'var(--aura-rose)' : 'var(--aura-muted)', animation: isJudging ? 'auraPulse 1s ease-in-out infinite' : 'none' }} />
+          <div className="section-head" style={{ flex: 'none' }}>Vocal Rhythm Judge</div>
+        </div>
+        {isJudging ? (
+          <button className="btn-ghost" style={{ padding: '8px 14px', fontSize: '11px', color: 'var(--aura-rose)', borderColor: 'rgba(255,143,163,0.4)' }} onClick={stopJudging}>
+            <MicOff size={13} /> Stop
+          </button>
+        ) : (
+          <button className="btn-ghost" style={{ padding: '8px 14px', fontSize: '11px', color: 'var(--aura-rose)', borderColor: 'rgba(255,143,163,0.4)' }} onClick={startJudging}>
+            <Activity size={13} /> Judge
+          </button>
+        )}
+      </div>
 
-      <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+      <p style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--aura-muted)', lineHeight: 1.6, marginBottom: '16px' }}>
+        Sing or clap on the beat to test rhythm accuracy. Clicks muted during judging — use headphones.
+      </p>
 
-        {/* LEFT: Info & Controls */}
-        <div className="flex-1 flex flex-col gap-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Mic className={`h-5 w-5 ${isJudging ? 'text-rose-400 animate-pulse' : 'text-slate-400'}`} />
-            <h2 className="text-xl font-orbitron font-bold text-slate-100 tracking-wider uppercase">
-              Vocal Rhythm Judge
-            </h2>
-          </div>
-          <p className="text-sm text-slate-400 font-sans leading-relaxed">
-            Test your rhythm accuracy. Sing or clap perfectly on the beat.
-            <span className="block mt-1 text-rose-300/80 text-xs flex items-center gap-1">
-              <ShieldAlert className="h-3 w-3" />
-              Metronome clicks will be muted to prevent mic feedback. Use headphones or visual cues.
+      {errorMsg && (
+        <div className="pill pill-rose" style={{ borderRadius: '4px', padding: '8px 12px', fontSize: '11px', marginBottom: '12px' }}>
+          {errorMsg}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '24px', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <span style={{
+              fontFamily: 'Cormorant Garamond, serif', fontSize: '64px', fontWeight: 600, lineHeight: 1,
+              color: score >= 90 ? 'var(--aura-emerald)' : score >= 70 ? 'var(--aura-amber)' : 'var(--aura-rose)',
+            }}>
+              {isJudging || hits > 0 ? score : '—'}
             </span>
-          </p>
-
-          <div className="mt-2">
-            {!isJudging ? (
-              <button
-                onClick={startJudging}
-                className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/50 px-6 py-2.5 rounded-xl font-orbitron font-bold text-sm tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center gap-2 w-max"
-              >
-                <Activity className="h-4 w-4" />
-                START JUDGING
-              </button>
-            ) : (
-              <button
-                onClick={stopJudging}
-                className="bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-600 px-6 py-2.5 rounded-xl font-orbitron font-bold text-sm tracking-widest transition-all flex items-center gap-2 w-max"
-              >
-                <MicOff className="h-4 w-4" />
-                STOP JUDGING
-              </button>
-            )}
-            {errorMsg && <div className="text-red-400 text-xs mt-2 font-bold">{errorMsg}</div>}
-          </div>
-        </div>
-
-        {/* RIGHT: Score Dashboard */}
-        <div className={`w-full md:w-64 glassmorphism-glow rounded-xl border p-4 flex flex-col items-center justify-center transition-all duration-300 ${isJudging ? 'border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.2)]' : 'border-slate-800'
-          }`}>
-          <div className="text-xs font-orbitron text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-            <Star className="h-3 w-3" /> Rhythm Score
-          </div>
-
-          <div className="relative">
-            <div className={`text-6xl font-black font-orbitron tracking-tighter ${score >= 90 ? 'text-emerald-400' : score >= 70 ? 'text-amber-400' : 'text-rose-400'
-              }`}>
-              {isJudging || hits > 0 ? score : '--'}
-            </div>
-
-            {/* Visual Pulse Ring on Onset */}
             {visualOnset && (
-              <div className="absolute inset-0 border-2 border-rose-400 rounded-full animate-ping opacity-50" />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid var(--aura-rose)', animation: 'auraPulse 0.3s ease-out' }} />
             )}
           </div>
-
-          <div className="flex gap-4 mt-4 text-xs font-orbitron text-slate-400 border-t border-slate-800/80 pt-3 w-full justify-around">
-            <div className="flex flex-col items-center">
-              <span>AVG ERROR</span>
-              <span className={`font-bold ${isJudging ? 'text-slate-200' : ''}`}>
-                {isJudging || hits > 0 ? `${avgError}ms` : '--'}
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span>HITS</span>
-              <span className={`font-bold ${isJudging ? 'text-slate-200' : ''}`}>
-                {isJudging || hits > 0 ? hits : '--'}
-              </span>
-            </div>
-          </div>
+          <p className="eyebrow-muted">Rhythm Score</p>
         </div>
 
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '12px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', color: 'var(--aura-body)' }}>
+              {isJudging || hits > 0 ? `${avgError}ms` : '—'}
+            </span>
+            <p className="eyebrow-muted" style={{ marginTop: '2px' }}>Avg Error</p>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', color: 'var(--aura-body)' }}>
+              {isJudging || hits > 0 ? hits : '—'}
+            </span>
+            <p className="eyebrow-muted" style={{ marginTop: '2px' }}>Hits</p>
+          </div>
+        </div>
       </div>
     </div>
   );

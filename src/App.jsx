@@ -8,6 +8,7 @@ import { calculateSessionSummary } from './utils/biomechanics';
 // Supabase backend client and views
 import { supabase } from './utils/supabaseClient';
 import CommunityFeed from './components/CommunityFeed';
+import AuraLanding from './components/AuraLanding';
 import UserDashboard from './components/UserDashboard';
 import AuthGate from './components/AuthGate';
 
@@ -24,8 +25,7 @@ const Metronome = React.lazy(() => import('./components/Metronome'));
 export default function App() {
   const [activeMainTab, setActiveMainTab] = useState('coach'); // 'coach' | 'feed' | 'dashboard'
   const [currentTab, setCurrentTab] = useState('judge'); // 'judge' | 'metronome'
-  const [view, setView] = useState('capture'); // 'capture' | 'processing' | 'results'
-  const [exerciseType, setExerciseType] = useState('Squats');
+  const [view, setView] = useState('home'); // 'home' | 'capture' | 'processing' | 'results'
   const [apiKey, setApiKey] = useState(() => {
     return localStorage.getItem('bioform_gemini_api_key') || '';
   });
@@ -154,7 +154,7 @@ export default function App() {
         .from('ai_reviews')
         .insert([{
           user_id: activeUser.id,
-          exercise_type: exerciseType,
+          exercise_type: 'Performance',
           score: score,
           feedback_markdown: feedbackText,
           media_url: mediaUrl
@@ -175,7 +175,7 @@ export default function App() {
             .from('ai_reviews')
             .insert([{
               user_id: activeUser.id,
-              exercise_type: exerciseType,
+              exercise_type: 'Performance',
               score: score,
               feedback_markdown: feedbackText
             }]);
@@ -394,284 +394,196 @@ ${JSON.stringify(trackingHistory, null, 2)}
   const handleReset = () => {
     setAnalysisResult('');
     setSavedTrackingData([]);
+    setView('home');
     setError(null);
     setPrefetchedResult(null);
     setPrefetchedError(null);
     prefetchPromiseRef.current = null;
-    setView('capture');
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
-      {/* HEADER NAVBAR */}
-      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="bg-cyan-500/10 p-2 rounded-xl border border-cyan-500/30">
-              <Activity className="h-6 w-6 text-cyan-400 animate-pulse" />
-            </div>
-            <div>
-              <span className="font-orbitron font-extrabold text-xl tracking-wider text-slate-100">
-                BIOFORM <span className="text-cyan-400 glow-cyan">AI</span>
-              </span>
-              <span className="text-[10px] block font-orbitron text-slate-500 tracking-widest uppercase">
-                Biomechanical Judge
-              </span>
-            </div>
-          </div>
+    <div style={{ backgroundColor: 'var(--aura-bg)', minHeight: '100dvh', color: 'var(--aura-body)' }} className="flex flex-col">
 
-          {/* MAIN 3-WAY TAB MENU NAVBAR */}
-          <div className="flex bg-slate-900 border border-slate-800 p-1.5 rounded-2xl text-[10px] sm:text-xs font-orbitron shadow-lg shadow-black/40">
-            <button
-              onClick={() => setActiveMainTab('coach')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-extrabold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${activeMainTab === 'coach'
-                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/5'
-                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
-                }`}
-            >
-              ⚡ AI Coach
-            </button>
-            <button
-              onClick={() => {
-                if (!activeUser) {
-                  setShowAuthModal(true);
-                }
-                setActiveMainTab('feed');
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-extrabold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${activeMainTab === 'feed'
-                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/5'
-                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
-                }`}
-            >
-              👥 Community Feed
-            </button>
-            <button
-              onClick={() => {
-                if (!activeUser) {
-                  setShowAuthModal(true);
-                }
-                setActiveMainTab('dashboard');
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-extrabold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${activeMainTab === 'dashboard'
-                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/5'
-                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
-                }`}
-            >
-              👤 My Dashboard
-            </button>
-          </div>
-
-          {/* Navigation / Configuration Actions */}
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            {/* View indicators (Only show when inside Form Judge tab) */}
-            {activeMainTab === 'coach' && currentTab === 'judge' && (
-              <div className="hidden lg:flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 p-1.5 rounded-xl text-[10px] font-orbitron mr-2 select-none">
-                <span className={`px-2 py-0.5 rounded transition-all ${view === 'capture' ? 'text-cyan-400 font-bold' : 'text-slate-500'}`}>CAPTURE</span>
-                <span className="text-slate-700">➔</span>
-                <span className={`px-2 py-0.5 rounded transition-all ${view === 'processing' ? 'text-cyan-400 font-bold animate-pulse' : 'text-slate-500'}`}>PROCESSING</span>
-                <span className="text-slate-700">➔</span>
-                <span className={`px-2 py-0.5 rounded transition-all ${view === 'results' ? 'text-cyan-400 font-bold' : 'text-slate-500'}`}>RESULTS</span>
-              </div>
-            )}
-
-            {/* API Key Configure Button */}
-            <button
-              onClick={() => setShowKeyModal(!showKeyModal)}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-xl font-orbitron font-bold text-xs tracking-wider transition-all duration-300 ${apiKey
-                  ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10'
-                  : 'border-amber-500/20 bg-amber-500/5 text-amber-400 hover:bg-amber-500/10 animate-pulse'
-                }`}
-            >
-              <Key className="h-4 w-4 shrink-0" />
-              {apiKey ? 'GEMINI KEY ACTIVE' : 'SET GEMINI KEY'}
-            </button>
-
-            {/* User Profile / Auth Action */}
-            {activeUser ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-xl text-xs font-orbitron">
-                  <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
-                  <span className="text-slate-400">ATHLETE:</span>
-                  <span className="font-extrabold text-slate-200 truncate max-w-[100px]">{activeUser.username}</span>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:text-rose-350 font-orbitron font-bold text-xs tracking-wider rounded-xl transition-all cursor-pointer"
-                >
-                  SIGN OUT
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="flex items-center gap-2 px-3.5 py-2 bg-cyan-500 hover:bg-cyan-400 border border-cyan-400 text-slate-950 font-orbitron font-bold text-xs tracking-wider rounded-xl transition-all active:scale-95 cursor-pointer shadow-lg hover:shadow-cyan-500/10"
-              >
-                <User className="h-4 w-4 shrink-0" />
-                SIGN IN
-              </button>
-            )}
-          </div>
-        </div>
+      {/* ── SCÉNIX HEADER ── */}
+      <header style={{
+        position: 'fixed', top: 0, left: 0, width: '100%', zIndex: 50,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 18px 10px',
+        background: 'linear-gradient(180deg, rgba(12,15,15,0.96), rgba(12,15,15,0.7))',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--aura-border-soft)',
+      }}>
+        <button className="icon-btn" onClick={() => setShowKeyModal(!showKeyModal)}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>menu</span>
+        </button>
+        <h1 style={{
+          fontFamily: 'Cormorant Garamond, serif',
+          fontWeight: 500,
+          fontSize: '28px',
+          letterSpacing: '0.04em',
+          color: 'var(--aura-gold)',
+          textShadow: '0 0 16px rgba(255,215,0,0.3)',
+          margin: 0,
+        }}>
+          Scénix
+        </h1>
+        <button className="icon-btn" onClick={() => activeUser ? setActiveMainTab('dashboard') : setShowAuthModal(true)}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{activeUser ? 'person_filled' : 'person'}</span>
+        </button>
       </header>
 
-      {/* API KEY DRAWER / CONFIG PANEL */}
+      {/* ── API KEY DRAWER ── */}
       {showKeyModal && (
-        <div className="bg-slate-900 border-b border-slate-800 px-6 py-5 shadow-2xl transition-all duration-300">
-          <div className="max-w-xl mx-auto flex flex-col gap-4">
-            <div className="flex justify-between items-start">
+        <div style={{
+          position: 'fixed', top: '57px', left: 0, width: '100%', zIndex: 40,
+          background: 'var(--aura-card-2)',
+          borderBottom: '1px solid var(--aura-border)',
+          padding: '20px 18px',
+          animation: 'auraFadeIn 0.2s ease',
+        }}>
+          <div style={{ maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h3 className="font-orbitron font-bold text-sm text-slate-200 uppercase tracking-wider">
-                  Gemini API Configuration
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  BioForm AI uses the Google Gemini 2.5 Flash model to audit your athletic movement. Provide your personal API key (stored locally inside your browser cache).
+                <p className="eyebrow" style={{ marginBottom: '4px' }}>Gemini API Key</p>
+                <p style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--aura-cream)', margin: 0 }}>
+                  Stored locally. Required for AI analysis.
                 </p>
               </div>
-              <button
-                onClick={() => setShowKeyModal(false)}
-                className="text-slate-500 hover:text-slate-300 text-xs font-semibold"
-              >
-                Close
+              <button onClick={() => setShowKeyModal(false)} className="icon-btn">
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
               </button>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div style={{ display: 'flex', gap: '10px' }}>
               <input
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Paste Gemini API Key (AIzaSy...)"
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-mono transition-colors"
+                placeholder="AIzaSy..."
+                className="aura-input"
+                style={{ fontFamily: 'monospace', fontSize: '13px' }}
+                onFocus={(e) => (e.target.style.borderColor = 'var(--aura-gold)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--aura-border-soft)')}
               />
-              <button
-                onClick={() => setShowKeyModal(false)}
-                className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl font-bold font-orbitron text-xs tracking-wider transition-colors"
-              >
-                SAVE KEY
+              <button onClick={() => setShowKeyModal(false)} className="btn-gold" style={{ width: 'auto', padding: '14px 20px', flexShrink: 0 }}>
+                Save
               </button>
-            </div>
-
-            <div className="flex gap-2 items-start bg-slate-950/60 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 leading-normal">
-              <Info className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
-              <div>
-                Don't have a key? You can generate a free-tier key in less than a minute at the{' '}
-                <a
-                  href="https://aistudio.google.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-cyan-400 hover:underline font-semibold"
-                >
-                  Google AI Studio Developer Console
-                </a>.
-              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ERROR BANNER */}
+      {/* ── ERROR BANNER ── */}
       {error && (
-        <div className="bg-rose-500/10 border-b border-rose-500/20 px-6 py-4">
-          <div className="max-w-4xl mx-auto flex items-start gap-3">
-            <ShieldAlert className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h4 className="font-bold text-xs text-rose-400 font-orbitron uppercase tracking-wider">PIPELINE EXECUTION EXCEPTION</h4>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">{error}</p>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-slate-500 hover:text-slate-300 text-xs font-semibold"
-            >
-              Dismiss
-            </button>
-          </div>
+        <div style={{
+          position: 'fixed', top: '57px', left: 0, width: '100%', zIndex: 35,
+          background: 'rgba(147,0,10,0.2)',
+          borderBottom: '1px solid rgba(255,143,163,0.2)',
+          padding: '10px 18px',
+          display: 'flex', alignItems: 'flex-start', gap: '10px',
+        }}>
+          <span className="material-symbols-outlined" style={{ color: 'var(--aura-rose)', fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>error</span>
+          <p style={{ fontFamily: 'DM Sans', fontSize: '12px', color: '#ffdad6', flex: 1, margin: 0, lineHeight: 1.5 }}>{error}</p>
+          <button onClick={() => setError(null)} style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--aura-muted)', cursor: 'pointer', background: 'none', border: 'none', flexShrink: 0 }}>
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* MAIN VIEW CONTENT CONTAINER */}
-      <main className="flex-1 flex flex-col justify-center items-center w-full">
-        {activeMainTab === 'coach' ? (
-          <div className="w-full flex flex-col items-center">
-            {/* Sub-tab Switcher under header */}
-            <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl text-[10px] font-orbitron shadow-md mt-6 select-none">
-              <button
-                onClick={() => setCurrentTab('judge')}
-                className={`px-3.5 py-1.5 rounded-lg font-bold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${currentTab === 'judge'
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                    : 'text-slate-450 hover:text-slate-200 border border-transparent'
-                  }`}
-              >
-                🧬 FORM JUDGE
-              </button>
-              <button
-                onClick={() => setCurrentTab('metronome')}
-                className={`px-3.5 py-1.5 rounded-lg font-bold tracking-widest uppercase transition-all duration-300 select-none cursor-pointer ${currentTab === 'metronome'
-                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                    : 'text-slate-450 hover:text-slate-200 border border-transparent'
-                  }`}
-              >
-                ⏱️ METRONOME
-              </button>
+      {/* ── MAIN CONTENT ── */}
+      <main className="flex-1" style={{ paddingTop: '57px', paddingBottom: '100px' }}>
+        {activeMainTab === 'coach' && (
+          <>
+            {/* Evaluate / Metronome segmented toggle */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 20px 0' }}>
+              <div className="seg" style={{ width: '100%', maxWidth: '300px' }}>
+                {[{ id: 'judge', label: 'Evaluate' }, { id: 'metronome', label: 'Metronome' }].map(({ id, label }) => (
+                  <button key={id} onClick={() => setCurrentTab(id)} className={currentTab === id ? 'active' : ''}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {currentTab === 'judge' ? (
               <>
+                {view === 'home' && <AuraLanding onStartCapture={() => setView('capture')} />}
                 {view === 'capture' && (
-                  <div className="w-full flex flex-col items-center gap-4">
-                    {/* Sleek Exercise Selector */}
-                    <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs font-orbitron select-none shadow-md mt-6">
-                      <span className="text-slate-400 font-bold">SELECT EXERCISE:</span>
-                      <select
-                        value={exerciseType}
-                        onChange={(e) => setExerciseType(e.target.value)}
-                        className="bg-slate-950 text-cyan-400 font-bold border border-slate-800 px-3 py-1.5 rounded-lg focus:outline-none focus:border-cyan-500 cursor-pointer"
-                      >
-                        <option value="Squats">🏋️ Squats</option>
-                        <option value="Pushups">💪 Pushups</option>
-                        <option value="Deadlifts">⚡ Deadlifts</option>
-                        <option value="Bicep Curls">💪 Bicep Curls</option>
-                        <option value="Dancing">🕺 Dancing</option>
-                        <option value="Vocals">🎤 Vocals</option>
-                      </select>
-                    </div>
-
-                    <PoseTracker
-                      onAnalysisComplete={handleAnalysisComplete}
-                      onBackgroundTelemetryReady={handleBackgroundTelemetryReady}
-                    />
-                  </div>
+                  <PoseTracker
+                    onAnalysisComplete={handleAnalysisComplete}
+                    onBackgroundTelemetryReady={handleBackgroundTelemetryReady}
+                  />
                 )}
-
                 {view === 'processing' && (
-                  <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto gap-6">
-                    {/* Spinning Neon Rings */}
-                    <div className="relative w-24 h-24 flex items-center justify-center">
-                      <div className="absolute inset-0 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
-                      <div className="absolute inset-2 border-4 border-emerald-500/20 border-b-emerald-400 rounded-full animate-spin [animation-direction:reverse] [animation-duration:1.5s]" />
-                      <Cpu className="h-8 w-8 text-cyan-400 animate-pulse" />
+                  <div style={{
+                    minHeight: 'calc(100dvh - 157px)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    padding: '40px 24px', textAlign: 'center', position: 'relative',
+                  }}>
+                    {/* Hero glow */}
+                    <div style={{
+                      position: 'absolute', top: '-120px', left: '50%', transform: 'translateX(-50%)',
+                      width: '600px', height: '440px',
+                      background: 'radial-gradient(ellipse, rgba(255,215,0,0.1), transparent 60%)',
+                      pointerEvents: 'none', opacity: 0.7,
+                    }} />
+
+                    {/* Concentric rotating arcs + tick ring */}
+                    <div style={{ position: 'relative', width: 160, height: 160, marginBottom: 32, flexShrink: 0 }}>
+                      {/* Outer arc — spins forward */}
+                      <svg width="160" height="160" style={{ position: 'absolute', inset: 0, animation: 'auraSpin 2.4s linear infinite' }}>
+                        <defs>
+                          <linearGradient id="arcGoldA" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="rgba(255,225,109,0)" />
+                            <stop offset="100%" stopColor="#ffe16d" />
+                          </linearGradient>
+                        </defs>
+                        <circle cx="80" cy="80" r="68" fill="none" stroke="url(#arcGoldA)" strokeWidth="2"
+                          strokeDasharray="180 360" strokeLinecap="round" />
+                      </svg>
+                      {/* Inner arc — spins reverse */}
+                      <svg width="160" height="160" style={{ position: 'absolute', inset: 0, animation: 'auraSpinReverse 3.6s linear infinite' }}>
+                        <defs>
+                          <linearGradient id="arcGoldB" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="rgba(255,215,0,0)" />
+                            <stop offset="100%" stopColor="#ffd700" />
+                          </linearGradient>
+                        </defs>
+                        <circle cx="80" cy="80" r="54" fill="none" stroke="url(#arcGoldB)" strokeWidth="1.5"
+                          strokeDasharray="100 360" strokeLinecap="round" />
+                      </svg>
+                      {/* 36-tick ring */}
+                      <svg width="160" height="160" style={{ position: 'absolute', inset: 0 }}>
+                        {Array.from({ length: 36 }).map((_, i) => {
+                          const a = (i / 36) * Math.PI * 2;
+                          return <line key={i}
+                            x1={80 + Math.cos(a) * 36} y1={80 + Math.sin(a) * 36}
+                            x2={80 + Math.cos(a) * 40} y2={80 + Math.sin(a) * 40}
+                            stroke="rgba(255,225,109,0.2)" strokeWidth="1" />;
+                        })}
+                      </svg>
+                      {/* Center analytics icon */}
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--aura-gold)' }}>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+                          <path d="M4 19V8m6 11V4m6 15v-7m6 7v-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.8))' }} />
+                        </svg>
+                      </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                      <h3 className="font-orbitron font-extrabold text-lg text-slate-100 tracking-wider">
-                        JUDGING IN PROGRESS
-                      </h3>
-                      <p className="text-slate-400 text-sm leading-relaxed h-12">
-                        {processingPhase}
-                      </p>
+                    <div className="h-title" style={{ fontSize: 22, marginBottom: 12, color: 'var(--aura-gold)', letterSpacing: '0.06em' }}>
+                      Evaluation in Progress
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--aura-cream)', lineHeight: 1.5, height: 36, maxWidth: 290, marginBottom: 18 }}>
+                      <span className="shimmer-text">{processingPhase}</span>
                     </div>
 
-                    {/* Glowing progress line */}
-                    <div className="w-64 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                      <div className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 w-1/3 rounded-full animate-[loading_2s_infinite_ease-in-out]" />
+                    {/* Scan line */}
+                    <div style={{ width: 56, height: 1, background: 'rgba(255,225,109,0.15)', overflow: 'hidden', position: 'relative', borderRadius: 1 }}>
+                      <div style={{ position: 'absolute', inset: 0, width: '40%', background: 'linear-gradient(90deg, transparent, var(--aura-gold), transparent)', animation: 'auraScan 1.4s linear infinite' }} />
                     </div>
 
-                    <p className="text-[10px] text-slate-500 font-orbitron tracking-widest uppercase">
-                      Average latency: ~3.5 seconds
-                    </p>
+                    <div className="eyebrow-muted" style={{ marginTop: 18, fontSize: 9 }}>Avg. Latency ~3.5s</div>
                   </div>
                 )}
-
                 {view === 'results' && (
                   <Dashboard
                     analysisText={analysisResult}
@@ -683,69 +595,94 @@ ${JSON.stringify(trackingHistory, null, 2)}
               </>
             ) : (
               <React.Suspense fallback={
-                <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto my-auto gap-6 animate-pulse">
-                  <div className="relative w-16 h-16 flex items-center justify-center">
-                    <div className="absolute inset-0 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
-                  </div>
-                  <p className="text-slate-400 font-orbitron text-xs tracking-widest uppercase mt-2">
-                    INITIALIZING PACING CONSOLE...
-                  </p>
+                <div style={{ minHeight: 'calc(100dvh - 157px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--aura-gold)', fontSize: '32px', animation: 'auraSpin 1s linear infinite' }}>sync</span>
                 </div>
               }>
                 <Metronome />
               </React.Suspense>
             )}
-          </div>
-        ) : activeMainTab === 'feed' ? (
-          <CommunityFeed 
-            activeUser={activeUser} 
-            onShowProfileModal={() => setShowAuthModal(true)} 
-          />
-        ) : (
-          <UserDashboard 
-            activeUser={activeUser} 
-            onShowProfileModal={() => setShowAuthModal(true)} 
+          </>
+        )}
+        {activeMainTab === 'feed' && (
+          <CommunityFeed activeUser={activeUser} onShowProfileModal={() => setShowAuthModal(true)} />
+        )}
+        {activeMainTab === 'dashboard' && (
+          <UserDashboard
+            activeUser={activeUser}
+            onShowProfileModal={() => setShowAuthModal(true)}
             onSwitchTab={(tab) => {
-              if (tab === 'coach') {
-                setActiveMainTab('coach');
-                setCurrentTab('judge');
-              } else {
-                setActiveMainTab(tab);
-              }
+              if (tab === 'coach') { setActiveMainTab('coach'); setCurrentTab('judge'); }
+              else setActiveMainTab(tab);
             }}
           />
         )}
       </main>
 
-      {/* ATHLETE PROFILE AUTHENTICATION PORTAL */}
+      {/* ── FLOATING PILL NAV ── */}
+      <nav style={{
+        position: 'fixed',
+        bottom: '18px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 50,
+        display: 'flex',
+        gap: '4px',
+        padding: '8px',
+        background: 'rgba(12,15,15,0.92)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid var(--aura-border)',
+        borderRadius: '999px',
+        boxShadow: '0 16px 40px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,225,109,0.06)',
+      }}>
+        {[
+          { id: 'coach', icon: 'analytics', label: 'Evaluate' },
+          { id: 'feed', icon: 'group', label: 'Community' },
+          { id: 'dashboard', icon: 'person', label: 'Profile' },
+        ].map(({ id, icon, label }) => {
+          const active = activeMainTab === id;
+          return (
+            <button key={id}
+              onClick={() => {
+                if ((id === 'feed' || id === 'dashboard') && !activeUser) { setShowAuthModal(true); return; }
+                setActiveMainTab(id);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                borderRadius: '999px',
+                border: 0,
+                background: active ? 'linear-gradient(180deg, #ffe87a, #ffd23a)' : 'transparent',
+                color: active ? '#2b2200' : 'var(--aura-cream)',
+                fontFamily: 'DM Sans, sans-serif',
+                fontWeight: 700,
+                fontSize: '10px',
+                letterSpacing: '0.02em',
+                cursor: 'pointer',
+                transition: 'all 0.25s cubic-bezier(.4,0,.2,1)',
+                boxShadow: active ? '0 0 0 1px rgba(255,215,0,0.4), 0 6px 18px -6px rgba(255,215,0,0.5)' : 'none',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
+              <span style={{
+                maxWidth: active ? '100px' : 0,
+                opacity: active ? 1 : 0,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                transition: 'max-width 0.3s, opacity 0.2s',
+                marginLeft: active ? '2px' : 0,
+              }}>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* ── AUTH MODAL ── */}
       {showAuthModal && (
-        <AuthGate 
-          onClose={() => setShowAuthModal(false)}
-          onAuthSuccess={(user) => {
-            setActiveUser(user);
-          }}
-        />
+        <AuthGate onClose={() => setShowAuthModal(false)} onAuthSuccess={(user) => setActiveUser(user)} />
       )}
-
-      {/* FOOTER */}
-      <footer className="border-t border-slate-900 bg-slate-950/40 py-6 text-center text-xs text-slate-500 font-orbitron tracking-wider">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>BIOFORM AI © 2026 // ALL SYSTEM CRITIQUES LOCALLY AUDITED</span>
-          <span className="text-[10px] text-slate-600 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block" />
-            BLAZEPOSE CNN ENGINE ACTIVE (WEBGL ENGINE)
-          </span>
-        </div>
-      </footer>
-
-      {/* Inject custom loading keyframe animation */}
-      <style>{`
-        @keyframes loading {
-          0% { transform: translateX(-150%); width: 30%; }
-          50% { width: 50%; }
-          100% { transform: translateX(250%); width: 30%; }
-        }
-      `}</style>
     </div>
   );
 }

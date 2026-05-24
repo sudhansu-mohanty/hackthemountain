@@ -1,49 +1,340 @@
 @import "tailwindcss";
 
-@layer base {
-  body {
-    background-color: #0f172a;
-    color: #f8fafc;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  }
+/* ── AURA / SCÉNIX Design Tokens ── */
+:root {
+  --aura-bg: #0c0f0f;
+  --aura-bg-2: #121414;
+  --aura-card: #1a1c1c;
+  --aura-card-2: #1f2221;
+  --aura-border: #4d4732;
+  --aura-border-soft: #2a2823;
+  --aura-gold: #ffe16d;
+  --aura-gold-bright: #ffd700;
+  --aura-gold-dark: #3a3000;
+  --aura-cream: #d0c6ab;
+  --aura-body: #e2e2e2;
+  --aura-muted: #7a7560;
+  --aura-cyan: #6ee7ff;
+  --aura-cyan-deep: #2dd4ea;
+  --aura-emerald: #8de890;
+  --aura-amber: #ffcb6b;
+  --aura-rose: #ff8fa3;
+  --aura-slate: #4a5460;
 }
 
-/* Custom glow animations and utilities */
-.glow-cyan {
-  text-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #14110a;
+  min-height: 100vh;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--aura-body);
+  -webkit-font-smoothing: antialiased;
 }
 
-.glow-emerald {
-  text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+/* ── Typography ── */
+.font-display { font-family: 'Cormorant Garamond', serif; }
+.font-body { font-family: 'DM Sans', sans-serif; }
+
+.eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--aura-gold);
+}
+.eyebrow-muted {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--aura-muted);
+}
+.h-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--aura-body);
+}
+.label-syne {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
-.glassmorphism {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+/* ── Buttons ── */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 20px;
+  background: linear-gradient(180deg, #ffe87a 0%, #ffd23a 100%);
+  color: #2b2200;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px rgba(255,225,109,0.6),
+    0 8px 24px -8px rgba(255,215,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.35);
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+.btn-gold:active { transform: translateY(1px); }
+.btn-gold:hover {
+  box-shadow:
+    0 0 0 1px rgba(255,225,109,0.8),
+    0 12px 32px -8px rgba(255,215,0,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.45);
 }
 
-.glassmorphism-glow {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(6, 182, 212, 0.2);
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+.btn-ghost {
+  background: transparent;
+  color: var(--aura-cream);
+  border: 1px solid var(--aura-border);
+  padding: 14px 18px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-ghost:hover { background: rgba(255,225,109,0.06); }
+
+/* ── Cards ── */
+.card {
+  background: var(--aura-card);
+  border: 1px solid var(--aura-border-soft);
+  border-radius: 4px;
+  padding: 18px;
+  position: relative;
+}
+.card-feature {
+  background: var(--aura-card);
+  border: 1px solid var(--aura-border);
+  border-left: 3px solid var(--aura-gold);
+  border-radius: 4px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
+/* ── Pills ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  border: 1px solid var(--aura-border);
+  color: var(--aura-cream);
+  background: rgba(255,225,109,0.04);
+}
+.pill .dot {
   width: 6px;
   height: 6px;
+  border-radius: 999px;
+  background: var(--aura-gold);
+  box-shadow: 0 0 8px var(--aura-gold);
 }
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+.pill-cyan .dot { background: var(--aura-cyan); box-shadow: 0 0 8px var(--aura-cyan); }
+.pill-cyan { color: var(--aura-cyan); border-color: rgba(110,231,255,0.4); background: rgba(110,231,255,0.06); }
+.pill-emerald .dot { background: var(--aura-emerald); box-shadow: 0 0 8px var(--aura-emerald); }
+.pill-emerald { color: var(--aura-emerald); border-color: rgba(141,232,144,0.4); background: rgba(141,232,144,0.06); }
+.pill-rose { color: var(--aura-rose); border-color: rgba(255,143,163,0.4); background: rgba(255,143,163,0.06); }
+
+/* ── Inputs ── */
+.aura-input {
+  width: 100%;
+  background: #0e1010;
+  border: 1px solid var(--aura-border-soft);
+  border-radius: 4px;
+  padding: 14px;
+  color: var(--aura-body);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  outline: none;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.5);
-  border-radius: 3px;
+.aura-input:focus { border-color: var(--aura-gold); }
+
+/* ── Section heading with flanking lines ── */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--aura-gold);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.8);
+.section-head::before, .section-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aura-border), transparent);
+}
+
+/* ── Progress bars ── */
+.bar {
+  position: relative;
+  height: 2px;
+  background: rgba(255,225,109,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--aura-gold), #fff5b8);
+  box-shadow: 0 0 12px rgba(255,215,0,0.6);
+  border-radius: 2px;
+}
+
+/* ── Hero glow ── */
+.hero-glow {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 500px;
+  background: radial-gradient(ellipse, rgba(255,215,0,0.16), transparent 60%);
+  pointer-events: none;
+}
+
+/* ── Segmented toggle ── */
+.seg {
+  display: flex;
+  background: #0e1010;
+  border: 1px solid var(--aura-border-soft);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+}
+.seg button {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--aura-cream);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.seg button.active {
+  background: linear-gradient(180deg, #ffe87a, #ffd23a);
+  color: #2b2200;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+/* ── Icon button ── */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--aura-border-soft);
+  background: rgba(255,225,109,0.03);
+  color: var(--aura-cream);
+  cursor: pointer;
+}
+.icon-btn:hover { background: rgba(255,225,109,0.08); border-color: var(--aura-border); }
+
+/* ── Shimmer text ── */
+.shimmer-text {
+  background: linear-gradient(90deg, var(--aura-cream) 0%, var(--aura-cream) 40%, var(--aura-gold) 50%, var(--aura-cream) 60%, var(--aura-cream) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: auraShimmer 3s linear infinite;
+}
+
+/* ── Card watermark ── */
+.card-watermark {
+  position: absolute;
+  right: -8px;
+  bottom: -16px;
+  opacity: 0.04;
+  font-size: 110px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 800;
+  color: var(--aura-gold);
+  pointer-events: none;
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--aura-card);
+  border: 1px solid var(--aura-border);
+  border-radius: 6px;
+  padding: 22px;
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,225,109,0.05);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 0; }
+
+/* ── Keyframe Animations ── */
+@keyframes auraSpin { to { transform: rotate(360deg); } }
+@keyframes auraSpinReverse { to { transform: rotate(-360deg); } }
+@keyframes auraBreathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.005); opacity: 0.94; }
+}
+@keyframes auraScan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes auraPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes auraShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes auraGlowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+  50% { box-shadow: 0 0 24px 4px rgba(255,215,0,0.2); }
+}
+@keyframes auraFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
