@@ -55,6 +55,7 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
   const hitCountRef = useRef(0);
   const currentScoreRef = useRef(100);
   const previousPitchRef = useRef(-1);
+  const lastVocalActivityRef = useRef(0);
 
   // Debounce visual pulse
   const visualTimeoutRef = useRef(null);
@@ -84,6 +85,7 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
       // Start time for the judge session
       startTimeRef.current = audioCtx.currentTime;
       lastOnsetRef.current = 0;
+      lastVocalActivityRef.current = audioCtx.currentTime;
 
       setIsJudging(true);
       setErrorMsg('');
@@ -138,8 +140,12 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
     // 2. Detects legato note changes by checking if pitch jumps > 1 semitone (~6%).
     const DEBOUNCE_TIME = 0.25;
     let onsetDetected = false;
+    const isCurrentlySinging = clarity > 0.70 && pitch !== -1;
 
-    if (clarity > 0.70) {
+    if (isCurrentlySinging) {
+      // Keep tracking the absolute last time they were producing vocal sound
+      lastVocalActivityRef.current = currentTime;
+
       if (previousPitchRef.current === -1) {
         // First vocal note in a sequence
         onsetDetected = true;
@@ -177,11 +183,23 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
         intervalMs = interval * 1000;
 
         const quarterNoteInterval = 60.0 / bpm;
-        const sixteenthInterval = quarterNoteInterval / 4.0;
 
-        // Find what type of note length the user just sang (e.g. 8th note, quarter note)
-        const expectedGridMultiplier = Math.round(interval / sixteenthInterval);
-        const expectedInterval = Math.max(1, expectedGridMultiplier) * sixteenthInterval;
+        // Dynamically scale the grid resolution based on BPM.
+        // At extremely high BPMs (e.g., 300 BPM), a 16th note is only 50ms.
+        // If we snap to 50ms, the maximum possible error is 25ms, which falls under
+        // the 35ms "Perfect" window, giving users a perfect score no matter what.
+        // We limit the grid to never be smaller than ~100ms.
+        let gridInterval = quarterNoteInterval / 4.0; // 16th note
+        if (gridInterval < 0.1) {
+          gridInterval = quarterNoteInterval / 2.0;   // 8th note
+          if (gridInterval < 0.1) {
+            gridInterval = quarterNoteInterval;       // Quarter note
+          }
+        }
+
+        // Find what type of note length the user just sang
+        const expectedGridMultiplier = Math.round(interval / gridInterval);
+        const expectedInterval = Math.max(1, expectedGridMultiplier) * gridInterval;
         targetIntervalMs = expectedInterval * 1000;
 
         errorMs = Math.abs(interval - expectedInterval) * 1000;
@@ -193,20 +211,27 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
       // --- HIT-BASED SCORING CURVE ---
       // This correctly gives humans a 100 for natural rubato singing.
       let hitScore = 0;
-      if (errorMs <= 35) hitScore = 100;        // Perfect timing (Natural human rubato)
-      else if (errorMs <= 60) hitScore = 80;    // Great timing
-      else if (errorMs <= 90) hitScore = 40;    // Okay timing
-      else hitScore = 0;                        // Complete miss
+      if (errorMs <= 35) {
+        hitScore = 100;        // Perfect timing (Natural human rubato)
+      } else if (errorMs <= 60) {
+        hitScore = 80;    // Great timing
+      } else if (errorMs <= 90) {
+        hitScore = 40;    // Okay timing
+      } else {
+        hitScore = 0;                        // Complete miss
+        // Harsh penalty: immediately drop the rolling average by 50 points for a missed beat
+        currentScoreRef.current = Math.max(0, currentScoreRef.current - 50);
+      }
 
-      // Update statistics
-      hitCountRef.current += 1;
       accumulatedErrorRef.current += errorMs;
+      hitCountRef.current += 1;
 
       // Use Exponentially Weighted Moving Average (EWMA) for hyper-responsive scoring!
       // This prevents a long history of perfect singing from masking current mistakes.
       // 20% weight to new hits, 80% to past score. Acts like a rhythm game health bar.
       const smoothingFactor = 0.2;
       currentScoreRef.current = (currentScoreRef.current * (1 - smoothingFactor)) + (hitScore * smoothingFactor);
+      setScore(Math.round(currentScoreRef.current));
 
       // --- DEBUGGING LOG ---
       if (hitCountRef.current > 1) {
@@ -216,8 +241,20 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
       const avgErr = accumulatedErrorRef.current / hitCountRef.current;
       setAvgError(Math.round(avgErr));
       setHits(hitCountRef.current);
+    } // End of onsetDetected block
 
-      setScore(Math.round(currentScoreRef.current));
+    if (!isCurrentlySinging && lastVocalActivityRef.current > 0) {
+      const secondsPerBeat = 60.0 / bpm;
+      const silenceDuration = currentTime - lastVocalActivityRef.current;
+
+      if (silenceDuration > secondsPerBeat + 0.15) {
+        console.log("[Vocal Judge] Completely Missed Beat!");
+
+        currentScoreRef.current = Math.max(0, currentScoreRef.current - 50);
+        setScore(Math.round(currentScoreRef.current));
+
+        lastVocalActivityRef.current += secondsPerBeat;
+      }
     }
 
     rafIdRef.current = requestAnimationFrame(processAudio);
@@ -225,7 +262,7 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
 
   return (
     <div className="relative w-full flex flex-col items-center gap-10 mt-8 transition-colors duration-500">
-      
+
       {/* Background Glow */}
       {isJudging && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#8de890]/5 rounded-full blur-[100px] pointer-events-none" />
@@ -254,15 +291,14 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
 
       {/* TELEMETRY DATA */}
       <div className="flex flex-col items-center w-full max-w-[280px] relative z-10 gap-10">
-        
+
         {/* Score Hub */}
         <div className="flex flex-col items-center justify-center relative w-full">
           <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">
             Phase Accuracy
           </div>
-          <div className={`text-[100px] font-light leading-none tracking-tighter ${
-            score >= 90 ? 'text-[#8de890]' : score >= 70 ? 'text-[#ffe16d]' : 'text-[#ff6b6b]'
-          }`}>
+          <div className={`text-[100px] font-light leading-none tracking-tighter ${score >= 90 ? 'text-[#8de890]' : score >= 70 ? 'text-[#ffe16d]' : 'text-[#ff6b6b]'
+            }`}>
             {isJudging || hits > 0 ? score : '—'}
           </div>
         </div>
@@ -289,14 +325,14 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
       {/* ACTION BUTTON */}
       <div className="w-full max-w-[280px] relative z-10 mt-4">
         {isJudging ? (
-          <button 
+          <button
             className="w-full py-5 rounded-full bg-[#111] text-[#ff6b6b] text-xs font-medium tracking-widest hover:bg-[#0a0a0a] transition-all flex items-center justify-center gap-3"
             onClick={stopJudging}
           >
             <MicOff size={14} /> HALT ANALYSIS
           </button>
         ) : (
-          <button 
+          <button
             className="w-full py-5 rounded-full bg-[#1a1a1a] text-[#8de890] text-xs font-medium tracking-widest hover:bg-[#222] transition-all flex items-center justify-center gap-3"
             onClick={startJudging}
           >

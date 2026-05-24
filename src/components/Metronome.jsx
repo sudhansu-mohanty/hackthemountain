@@ -173,10 +173,15 @@ export default function Metronome() {
 
       // Smooth Kinetic Sweep Animation via direct SVG attribute mutation
       if (pendulumRef.current && audioContextRef.current) {
-        const hz = bpmRef.current / 60;
-        // Swing range of 60 degrees (-60 to +60)
-        const angle = Math.cos(audioContextRef.current.currentTime * Math.PI * hz) * 60;
-        pendulumRef.current.setAttribute('transform', `translate(100, 90) rotate(${angle})`);
+        if (feedbackModeRef.current === 'haptic') {
+          // Freeze the pendulum in pure haptic mode
+          pendulumRef.current.setAttribute('transform', `translate(100, 90) rotate(0)`);
+        } else {
+          const hz = bpmRef.current / 60;
+          // Swing range of 60 degrees (-60 to +60)
+          const angle = Math.cos(audioContextRef.current.currentTime * Math.PI * hz) * 60;
+          pendulumRef.current.setAttribute('transform', `translate(100, 90) rotate(${angle})`);
+        }
       }
 
       animationFrameIdRef.current = requestAnimationFrame(draw);
@@ -249,20 +254,16 @@ export default function Metronome() {
     setIsMuted(true);
     setFeedbackMode('haptic'); // Switch to haptic to prevent microphone feedback
     
-    // Force a complete restart of the metronome to perfectly align its phase 
-    // (t=0) with the exact moment the Vocal Judge starts recording.
-    if (isPlaying) {
-      stopMetronomeEngine();
+    // If it's not playing, start it. If it is playing, let it continue uninterrupted!
+    if (!isPlaying) {
+      startMetronomeEngine();
     }
-    setTimeout(() => startMetronomeEngine(), 50);
   };
 
   const handleStopJudge = () => {
     setIsMuted(previousIsMutedRef.current);
     setFeedbackMode(previousFeedbackModeRef.current);
-    if (isPlaying) {
-      stopMetronomeEngine();
-    }
+    // Don't auto-stop the metronome either, let the user decide when to stop the session
   };
 
   return (
