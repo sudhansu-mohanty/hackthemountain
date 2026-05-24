@@ -156,7 +156,7 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
             />
           </svg>
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600, fontSize: 52, color: 'var(--aura-body)', lineHeight: 1, position: 'relative', top: '-4px' }}>{animatedScore}</span>
+            <span style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600, fontSize: 52, color: 'var(--aura-body)', lineHeight: 1, position: 'relative', top: '-8px' }}>{animatedScore}</span>
           </div>
         </div>
       </div>
