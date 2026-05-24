@@ -702,7 +702,7 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
           {/* HTML5 Video Element */}
           <video
             ref={videoRef}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', transform: sourceMode === 'webcam' ? 'scaleX(-1)' : 'none' }}
+            style={{ width: '100%', height: '100%', objectFit: sourceMode === 'file' ? 'contain' : 'cover', pointerEvents: 'none', transform: sourceMode === 'webcam' ? 'scaleX(-1)' : 'none' }}
             playsInline
             muted
           />
@@ -710,7 +710,7 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
           {/* Precise Drawing Overlay */}
           <canvas
             ref={canvasRef}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', transform: sourceMode === 'webcam' ? 'scaleX(-1)' : 'none' }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: sourceMode === 'file' ? 'contain' : 'cover', transform: sourceMode === 'webcam' ? 'scaleX(-1)' : 'none' }}
           />
 
           {/* Drag & Drop File Upload Overlay */}

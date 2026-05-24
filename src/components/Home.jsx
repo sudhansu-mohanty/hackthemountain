@@ -76,7 +76,7 @@ export default function Home({ onNavigate }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative', zIndex: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--aura-bg)', border: '1px solid var(--aura-cyan)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--aura-cyan)', fontSize: '12px', fontFamily: 'monospace', fontWeight: 'bold' }}>2</div>
-              <span className="label-syne" style={{ fontSize: '12px', color: 'var(--aura-body)' }}>Human-Centric Scaffolding</span>
+              <span className="label-syne" style={{ fontSize: '12px', color: 'var(--aura-body)' }}>Human Centric Scaffolding</span>
             </div>
             <p style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--aura-cream)', lineHeight: 1.5, margin: 0, paddingLeft: '42px' }}>
               Displays detailed, transparent scoring charts overlaid directly onto the video loops. Shows exactly where mistakes occurred without gatekeeping details.
@@ -90,7 +90,7 @@ export default function Home({ onNavigate }) {
               <span className="label-syne" style={{ fontSize: '12px', color: 'var(--aura-body)' }}>Decentralized Peer Review</span>
             </div>
             <p style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--aura-cream)', lineHeight: 1.5, margin: 0, paddingLeft: '42px' }}>
-              Allows remote mentors and peers to review time-coded slots, leave vocal critiques, and use consensus ordinal voting to avoid toxic downvote spikes.
+              Allows remote mentors and peers to review time coded slots, leave vocal critiques, and use consensus ordinal voting to avoid toxic downvote spikes.
             </p>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function Home({ onNavigate }) {
               <div className="label-syne" style={{ fontSize: '13px', color: 'var(--aura-body)' }}>Bypass the $250/Hour Gatekeepers</div>
             </div>
             <p style={{ fontFamily: 'DM Sans', fontSize: '11.5px', color: 'var(--aura-cream)', lineHeight: 1.6, margin: 0 }}>
-              Under traditional learning, 41% of lower-income families are priced out of performing arts classes. Scénix replaces premium coach fees with high-fidelity, real-time joint-angle checking and vocal pitch tracking algorithms for free.
+              Under traditional learning, 41% of lower income families are priced out of performing arts classes. Scénix replaces premium coach fees with high fidelity, real time joint angle checking and vocal pitch tracking algorithms for free.
             </p>
           </div>
 
@@ -129,7 +129,7 @@ export default function Home({ onNavigate }) {
               <div className="label-syne" style={{ fontSize: '13px', color: 'var(--aura-body)' }}>Zero Rehearsal Space Needed</div>
             </div>
             <p style={{ fontFamily: 'DM Sans', fontSize: '11.5px', color: 'var(--aura-cream)', lineHeight: 1.6, margin: 0 }}>
-              Art universities ration studio rooms strictly—often limiting students to just 10 hours of booking per semester. Our advanced camera keypoint normalizer corrects lens distort, turning any bedroom, hallway, or park into a full-scale feedback lab.
+              Art universities ration studio rooms strictly, often limiting students to just 10 hours of booking per semester. Our advanced camera keypoint normalizer corrects lens distort, turning any bedroom, hallway, or park into a full scale feedback lab.
             </p>
           </div>
 
@@ -142,7 +142,7 @@ export default function Home({ onNavigate }) {
               <div className="label-syne" style={{ fontSize: '13px', color: 'var(--aura-body)' }}>From Isolation to Industry</div>
             </div>
             <p style={{ fontFamily: 'DM Sans', fontSize: '11.5px', color: 'var(--aura-cream)', lineHeight: 1.6, margin: 0 }}>
-              Independent creators often practice in a vacuum, lacking industry access. Scénix aggregates peer review score profiles, letting you export verified pitch-aligned self-tapes and battle telemetry direct to agencies and casting directors.
+              Independent creators often practice in a vacuum, lacking industry access. Scénix aggregates peer review score profiles, letting you export verified pitch aligned self tapes and battle telemetry direct to agencies and casting directors.
             </p>
           </div>
 
