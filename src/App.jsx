@@ -289,9 +289,9 @@ ${JSON.stringify(trackingHistory, null, 2)}
     setError(null);
     setView('processing');
 
-    // 1. Upload video file to community-media bucket if in file mode
+    // 1. Upload video file to community-media bucket if rawFile is present (either webcam or uploaded file)
     let uploadedMediaUrl = null;
-    if (sourceMode === 'file' && rawFile && activeUser) {
+    if (rawFile && activeUser) {
       try {
         setProcessingPhase('Uploading session video to vault...');
         const fileExt = rawFile.name.split('.').pop();
