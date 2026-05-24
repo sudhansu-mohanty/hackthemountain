@@ -144,7 +144,9 @@ export default function App() {
       return scoreMatch ? parseInt(scoreMatch[1], 10) : 70;
     };
 
-    const score = extractScoreFromText(feedbackText);
+    const score = isUploadedVideo 
+      ? Math.max(50, Math.min(95, Math.round(extractScoreFromText(feedbackText) * 1.2)))
+      : extractScoreFromText(feedbackText);
 
     try {
       // First attempt: try to insert with media_url
