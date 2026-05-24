@@ -224,64 +224,87 @@ export default function VocalJudge({ bpm, isPlaying, onStartJudge, onStopJudge }
   };
 
   return (
-    <div className="card" style={{ border: `1px solid ${isJudging ? 'rgba(255,143,163,0.4)' : 'var(--aura-border-soft)'}`, transition: 'border-color 0.3s' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Mic size={16} style={{ color: isJudging ? 'var(--aura-rose)' : 'var(--aura-muted)', animation: isJudging ? 'auraPulse 1s ease-in-out infinite' : 'none' }} />
-          <div className="section-head" style={{ flex: 'none' }}>Vocal Rhythm Judge</div>
+    <div className="relative w-full flex flex-col items-center gap-10 mt-8 transition-colors duration-500">
+      
+      {/* Background Glow */}
+      {isJudging && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#8de890]/5 rounded-full blur-[100px] pointer-events-none" />
+      )}
+      {visualOnset && (
+        <div className="absolute inset-0 bg-[#8de890]/10 transition-opacity duration-100 rounded-full blur-2xl" />
+      )}
+
+      {/* HEADER */}
+      <div className="flex flex-col items-center text-center gap-2 relative z-10 w-full max-w-[280px]">
+        <div className="text-[10px] font-medium tracking-[0.2em] text-[#ffe16d]/60 uppercase mb-2 flex items-center gap-2">
+          <Mic size={12} className={isJudging ? 'text-[#8de890] animate-pulse' : ''} />
+          Acoustic Analysis
         </div>
-        {isJudging ? (
-          <button className="btn-ghost" style={{ padding: '8px 14px', fontSize: '11px', color: 'var(--aura-rose)', borderColor: 'rgba(255,143,163,0.4)' }} onClick={stopJudging}>
-            <MicOff size={13} /> Stop
-          </button>
-        ) : (
-          <button className="btn-ghost" style={{ padding: '8px 14px', fontSize: '11px', color: 'var(--aura-rose)', borderColor: 'rgba(255,143,163,0.4)' }} onClick={startJudging}>
-            <Activity size={13} /> Judge
-          </button>
-        )}
+        <h3 className="text-2xl font-light text-white/90 tracking-wide mb-4">Vocal Rhythm Judge</h3>
+        <p className="text-[10px] text-white/50 leading-relaxed text-center font-medium">
+          Synchronize vocal pulses with the kinetic sweep. Audio feedback routes to haptics during analysis.
+        </p>
       </div>
 
-      <p style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--aura-muted)', lineHeight: 1.6, marginBottom: '16px' }}>
-        Sing or clap on the beat to test rhythm accuracy. Clicks muted during judging — use headphones.
-      </p>
-
       {errorMsg && (
-        <div className="pill pill-rose" style={{ borderRadius: '4px', padding: '8px 12px', fontSize: '11px', marginBottom: '12px' }}>
+        <div className="text-[#ff6b6b] text-xs font-medium text-center">
           {errorMsg}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '24px', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ position: 'relative', display: 'inline-block' }}>
-            <span style={{
-              fontFamily: 'Cormorant Garamond, serif', fontSize: '64px', fontWeight: 600, lineHeight: 1,
-              color: score >= 90 ? 'var(--aura-emerald)' : score >= 70 ? 'var(--aura-amber)' : 'var(--aura-rose)',
-            }}>
-              {isJudging || hits > 0 ? score : '—'}
-            </span>
-            {visualOnset && (
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid var(--aura-rose)', animation: 'auraPulse 0.3s ease-out' }} />
-            )}
+      {/* TELEMETRY DATA */}
+      <div className="flex flex-col items-center w-full max-w-[280px] relative z-10 gap-10">
+        
+        {/* Score Hub */}
+        <div className="flex flex-col items-center justify-center relative w-full">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-4">
+            Phase Accuracy
           </div>
-          <p className="eyebrow-muted">Rhythm Score</p>
+          <div className={`text-[100px] font-light leading-none tracking-tighter ${
+            score >= 90 ? 'text-[#8de890]' : score >= 70 ? 'text-[#ffe16d]' : 'text-[#ff6b6b]'
+          }`}>
+            {isJudging || hits > 0 ? score : '—'}
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '12px' }}>
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', color: 'var(--aura-body)' }}>
+        {/* Granular Metrics */}
+        <div className="flex w-full justify-between items-center px-4">
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-medium tracking-[0.2em] text-white/40 uppercase mb-2">Drift Error</span>
+            <span className="text-2xl font-light text-white/90">
               {isJudging || hits > 0 ? `${avgError}ms` : '—'}
             </span>
-            <p className="eyebrow-muted" style={{ marginTop: '2px' }}>Avg Error</p>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '28px', color: 'var(--aura-body)' }}>
+          <div className="h-8 w-px bg-[#333]" />
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-medium tracking-[0.2em] text-white/40 uppercase mb-2">Pulses</span>
+            <span className="text-2xl font-light text-white/90">
               {isJudging || hits > 0 ? hits : '—'}
             </span>
-            <p className="eyebrow-muted" style={{ marginTop: '2px' }}>Hits</p>
           </div>
         </div>
+
       </div>
+
+      {/* ACTION BUTTON */}
+      <div className="w-full max-w-[280px] relative z-10 mt-4">
+        {isJudging ? (
+          <button 
+            className="w-full py-5 rounded-full bg-[#111] text-[#ff6b6b] text-xs font-medium tracking-widest hover:bg-[#0a0a0a] transition-all flex items-center justify-center gap-3"
+            onClick={stopJudging}
+          >
+            <MicOff size={14} /> HALT ANALYSIS
+          </button>
+        ) : (
+          <button 
+            className="w-full py-5 rounded-full bg-[#1a1a1a] text-[#8de890] text-xs font-medium tracking-widest hover:bg-[#222] transition-all flex items-center justify-center gap-3"
+            onClick={startJudging}
+          >
+            <Activity size={14} /> INITIATE ANALYSIS
+          </button>
+        )}
+      </div>
+
     </div>
   );
 }

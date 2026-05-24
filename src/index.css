@@ -26,11 +26,39 @@
 
 body {
   margin: 0;
-  background: #14110a;
+  /* Premium flat charcoal background */
+  background-color: #222222;
   min-height: 100vh;
   font-family: 'DM Sans', system-ui, sans-serif;
   color: var(--aura-body);
   -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+body::before {
+  width: 800px;
+  height: 800px;
+  background: rgba(255, 225, 109, 0.02);
+  top: -200px;
+  left: -300px;
+}
+
+body::after {
+  width: 900px;
+  height: 900px;
+  background: rgba(255, 255, 255, 0.02);
+  bottom: -300px;
+  right: -400px;
 }
 
 /* ── Typography ── */

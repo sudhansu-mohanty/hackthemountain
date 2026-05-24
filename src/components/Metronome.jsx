@@ -36,6 +36,7 @@ export default function Metronome() {
   const timerIdRef = useRef(null);
   const notesInQueueRef = useRef([]); // { note: number, time: number }
   const animationFrameIdRef = useRef(null);
+  const pendulumRef = useRef(null);
 
   // Detect vibration API compatibility
   useEffect(() => {
@@ -56,11 +57,11 @@ export default function Metronome() {
 
   // Sports Cadence Presets
   const presets = [
-    { name: 'Adagio', bpm: 60, desc: 'Slow, expressive performance tempo' },
-    { name: 'Andante', bpm: 76, desc: 'Walking pace, moderate flow' },
-    { name: 'Moderato', bpm: 108, desc: 'Balanced mid-tempo cadence' },
-    { name: 'Allegro', bpm: 140, desc: 'Lively, energetic performance' },
-    { name: 'Presto', bpm: 180, desc: 'Rapid, high-intensity execution' },
+    { name: 'Adagio', bpm: 60, desc: 'Slow, expressive cadence' },
+    { name: 'Andante', bpm: 76, desc: 'Walking pace flow' },
+    { name: 'Moderato', bpm: 108, desc: 'Balanced mid-tempo' },
+    { name: 'Allegro', bpm: 140, desc: 'Lively execution' },
+    { name: 'Presto', bpm: 180, desc: 'High-intensity' },
   ];
 
   // Clean up timers on unmount
@@ -170,6 +171,14 @@ export default function Metronome() {
         setActiveBeat(activeBeatVal);
       }
 
+      // Smooth Kinetic Sweep Animation via direct SVG attribute mutation
+      if (pendulumRef.current && audioContextRef.current) {
+        const hz = bpmRef.current / 60;
+        // Swing range of 60 degrees (-60 to +60)
+        const angle = Math.cos(audioContextRef.current.currentTime * Math.PI * hz) * 60;
+        pendulumRef.current.setAttribute('transform', `translate(100, 90) rotate(${angle})`);
+      }
+
       animationFrameIdRef.current = requestAnimationFrame(draw);
     };
 
@@ -232,22 +241,6 @@ export default function Metronome() {
     }
   };
 
-  // Calculate pendulum angle: visual sweep
-  // Sweeps between -35deg and 35deg based on selected BPM and current playback state
-  const getPendulumStyle = () => {
-    if (!isPlaying) return { transform: 'rotate(0deg)' };
-    
-    // Smooth back-and-forth oscillation using cosine matching the exact frequency of BPM
-    const hz = bpm / 60;
-    const timeInSeconds = audioContextRef.current ? audioContextRef.current.currentTime : 0;
-    const angle = Math.cos(timeInSeconds * Math.PI * hz) * 35;
-    
-    return {
-      transform: `rotate(${angle}deg)`,
-      transition: 'transform 0.05s linear' // small buffer transition for liquid motion
-    };
-  };
-
   // Vocal Judge Handlers
   const handleStartJudge = () => {
     previousFeedbackModeRef.current = feedbackModeRef.current;
@@ -273,224 +266,260 @@ export default function Metronome() {
   };
 
   return (
-    <div style={{ padding: '18px 18px 24px' }}>
+    <div className="max-w-md mx-auto w-full px-6 py-12 flex flex-col gap-16 font-sans">
       {/* HEADER */}
-      <div style={{ marginBottom: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-        <div>
-          <div className="eyebrow-muted" style={{ marginBottom: 4 }}>Rhythm Companion</div>
-          <div className="h-title" style={{ fontSize: 20, letterSpacing: '0.04em' }}>Metronome</div>
+      <div className="flex flex-col items-center text-center gap-2">
+        <div className="text-[10px] font-medium tracking-[0.2em] text-[#ffe16d] uppercase">
+          Fluid Monitoring System
         </div>
+        <h1 className="text-3xl font-light tracking-wide text-white/90">
+          Rhythm Telemetry
+        </h1>
       </div>
 
-      {/* MAIN LAYOUT */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* MODE TOGGLE (Floating Pills) */}
+      <div className="flex bg-[#2a2a2a]/40 rounded-full p-1.5 w-full mx-auto max-w-[260px]">
+        <button 
+          className={`flex-1 py-3 rounded-full text-xs font-medium tracking-widest transition-all duration-300 ${mode === 'bpm' ? 'bg-[#111] text-white shadow-sm' : 'text-white/40 hover:text-white/60'}`}
+          onClick={() => setMode('bpm')}
+        >
+          TEMPO
+        </button>
+        <button 
+          className={`flex-1 py-3 rounded-full text-xs font-medium tracking-widest transition-all duration-300 ${mode === 'timeSig' ? 'bg-[#111] text-white shadow-sm' : 'text-white/40 hover:text-white/60'}`}
+          onClick={() => setMode('timeSig')}
+        >
+          METER
+        </button>
+      </div>
 
-        {/* BPM display */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px', gap: '20px' }}>
-
-          {/* Mode toggle */}
-          <div className="seg" style={{ width: '100%', maxWidth: '280px' }}>
-            <button type="button" className={mode === 'bpm' ? 'active' : ''} onClick={() => setMode('bpm')}>Tempo</button>
-            <button type="button" className={mode === 'timeSig' ? 'active' : ''} onClick={() => setMode('timeSig')}>Meter</button>
+      {/* CENTRAL TELEMETRY HUB */}
+      {mode === 'bpm' ? (
+        <div className="flex flex-col items-center w-full relative">
+          
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-8">
+            Total Cadence
           </div>
-
-          {/* BPM / Meter display */}
-          {mode === 'bpm' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  fontFamily: 'Cormorant Garamond, serif', fontWeight: 500, fontSize: 96, lineHeight: 0.95,
-                  letterSpacing: '-0.03em',
-                  background: 'linear-gradient(180deg, #fff5b8, #ffd23a)',
-                  WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
-                  textShadow: 'none',
-                }}>{bpm}</div>
-                <div className="eyebrow-muted" style={{ marginTop: -4 }}>Beats per minute</div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '320px' }}>
-                <button className="icon-btn" onClick={() => adjustBpm(-5)} style={{ flexShrink: 0 }}>
-                  <Minus size={16} />
-                </button>
-                <input type="range" min="30" max="300" value={bpm}
-                  onChange={(e) => setBpm(parseInt(e.target.value))}
-                  style={{ flex: 1, accentColor: 'var(--aura-gold)', height: '4px' }}
-                />
-                <button className="icon-btn" onClick={() => adjustBpm(5)} style={{ flexShrink: 0 }}>
-                  <Plus size={16} />
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', width: '100%', maxWidth: '320px' }}>
-                <button className="btn-ghost" style={{ padding: '8px', fontSize: '11px' }} onClick={() => adjustBpm(-1)}>−1</button>
-                <button className="btn-gold" style={{ padding: '8px', fontSize: '11px' }} onClick={handleTapTempo}>Tap</button>
-                <button className="btn-ghost" style={{ padding: '8px', fontSize: '11px' }} onClick={() => adjustBpm(1)}>+1</button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
-              <p className="eyebrow-muted" style={{ textAlign: 'center' }}>Subdivision Meter</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                {[{ beats: 4, label: '4/4' }, { beats: 3, label: '3/4' }, { beats: 6, label: '6/8' }, { beats: 5, label: '5/4' }].map((sig) => (
-                  <button key={sig.beats}
-                    onClick={() => { setBeatsPerMeasure(sig.beats); setActiveBeat(-1); }}
-                    style={{
-                      padding: '10px 4px',
-                      background: beatsPerMeasure === sig.beats ? 'linear-gradient(180deg,#ffe87a,#ffd23a)' : 'var(--aura-card-2)',
-                      border: `1px solid ${beatsPerMeasure === sig.beats ? 'rgba(255,215,0,0.4)' : 'var(--aura-border-soft)'}`,
-                      borderRadius: '4px',
-                      color: beatsPerMeasure === sig.beats ? '#2b2200' : 'var(--aura-cream)',
-                      fontFamily: 'DM Sans', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-                    }}
-                  >
-                    {sig.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Beat grid */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', padding: '16px', background: 'var(--aura-bg)', borderRadius: '4px', border: '1px solid var(--aura-border-soft)' }}>
-                {Array.from({ length: beatsPerMeasure }).map((_, idx) => {
-                  const isFirst = idx === 0;
-                  const isActive = activeBeat === idx;
-                  return (
-                    <div key={idx} style={{
-                      width: '36px', height: '36px', borderRadius: '4px',
-                      border: `1px solid ${isActive ? (isFirst ? 'var(--aura-emerald)' : 'var(--aura-gold)') : 'var(--aura-border-soft)'}`,
-                      background: isActive ? (isFirst ? 'rgba(141,232,144,0.15)' : 'rgba(255,225,109,0.12)') : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'DM Sans', fontWeight: 700, fontSize: '12px',
-                      color: isActive ? (isFirst ? 'var(--aura-emerald)' : 'var(--aura-gold)') : 'var(--aura-muted)',
-                      transition: 'all 0.1s',
-                      transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                    }}>
-                      {idx + 1}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Play / Stop */}
-          <button className="btn-gold" style={{ width: '100%', maxWidth: '280px' }} onClick={handleTogglePlay}>
-            {isPlaying ? <><Square size={14} /> Pause Metronome</> : <><Play size={14} /> Start Metronome</>}
-          </button>
-        </div>
-
-        {/* Pendulum card */}
-        <div className="card" style={{ padding: '14px 8px' }}>
-          <div className="eyebrow-muted" style={{ marginBottom: 4, textAlign: 'center' }}>Visual Pulse</div>
-          {/* Pendulum SVG */}
-          <div style={{ position: 'relative', width: '100%', height: '140px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', overflow: 'hidden' }}>
-            <svg width="240" height="130" style={{ position: 'absolute', bottom: 0 }}>
+          
+          <div className="relative w-full aspect-[2/1] flex justify-center overflow-visible mb-16 max-w-[280px]">
+            {/* The Massive Minimalist Gauge */}
+            <svg viewBox="0 0 200 100" className="w-full h-full overflow-visible">
               <defs>
-                <linearGradient id="pendGrad" x1="0" y1="1" x2="0" y2="0">
-                  <stop offset="0%" stopColor="var(--aura-gold)" />
-                  <stop offset="100%" stopColor="#fff5b8" />
+                <linearGradient id="pendGrad" x1="0" y1="-80" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#ffe16d" />
+                  <stop offset="100%" stopColor="rgba(255,225,109,0.0)" />
                 </linearGradient>
+                <radialGradient id="centerAura">
+                  <stop offset="0%" stopColor="rgba(255,225,109,0.15)" />
+                  <stop offset="100%" stopColor="rgba(255,225,109,0)" />
+                </radialGradient>
               </defs>
-              {/* Arc guide */}
-              <path d="M 50 120 A 70 70 0 0 1 190 120" fill="none" stroke="var(--aura-border-soft)" strokeWidth="1" strokeDasharray="4 3" />
-              {/* Degree labels */}
-              <text x="46" y="116" style={{ fontSize: 8, fill: 'var(--aura-muted)', fontFamily: 'DM Sans', fontWeight: 700 }}>-35°</text>
-              <text x="110" y="108" style={{ fontSize: 8, fill: 'var(--aura-muted)', fontFamily: 'DM Sans', fontWeight: 700, textAnchor: 'middle' }}>0°</text>
-              <text x="174" y="116" style={{ fontSize: 8, fill: 'var(--aura-muted)', fontFamily: 'DM Sans', fontWeight: 700 }}>+35°</text>
-              {/* Pendulum rod */}
-              <g transform="translate(120,120)" style={{ transformOrigin: '120px 120px', ...getPendulumStyle() }}>
-                <line x1="0" y1="0" x2="0" y2="-90" stroke="url(#pendGrad)" strokeWidth="2" strokeLinecap="round" />
-                {/* Bob */}
-                <circle cx="0" cy="-90" r="7" fill="var(--aura-card-2)" stroke="var(--aura-emerald)" strokeWidth="1.5" />
-                <circle cx="0" cy="-90" r="3" fill="var(--aura-emerald)" />
+              
+              {/* Background Aura */}
+              <circle cx="100" cy="90" r="50" fill="url(#centerAura)" />
+
+              {/* Background Arc */}
+              <path d="M 10 90 A 80 80 0 0 1 190 90" fill="none" stroke="#2a2a2a" strokeWidth="2" strokeDasharray="4 8" />
+              
+              <g ref={pendulumRef} transform="translate(100, 90) rotate(0)">
+                <line x1="0" y1="0" x2="0" y2="-80" stroke="url(#pendGrad)" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="0" cy="-80" r="4" fill="#ffe16d" />
               </g>
-              {/* Pivot */}
-              <circle cx="120" cy="120" r="4" fill="var(--aura-card-2)" stroke="var(--aura-gold)" strokeWidth="1.5" />
-              {isPlaying && (
-                <circle key={activeBeat} cx="120" cy="120" r="8" fill="none" stroke="var(--aura-gold)" strokeWidth="1" opacity="0.5">
-                  <animate attributeName="r" from="5" to="18" dur="0.4s" fill="freeze" />
-                  <animate attributeName="opacity" from="0.5" to="0" dur="0.4s" fill="freeze" />
-                </circle>
-              )}
+
+              {/* Pivot Base */}
+              <circle cx="100" cy="90" r="5" fill="#111" stroke="#2a2a2a" strokeWidth="2" />
             </svg>
-          </div>
-        </div>
-
-        {/* Feedback System */}
-        <div>
-          <div className="eyebrow-muted" style={{ marginBottom: 8 }}>Feedback System</div>
-          <div className="seg" style={{ marginBottom: 14 }}>
-            <button type="button" className={feedbackMode === 'audio' ? 'active' : ''} onClick={() => setFeedbackMode('audio')}>
-              <Volume2 size={11} /> Click
-            </button>
-            <button type="button" className={feedbackMode === 'haptic' ? 'active' : ''} onClick={() => setFeedbackMode('haptic')}>
-              Vibrate
-            </button>
-            <button type="button" className={feedbackMode === 'both' ? 'active' : ''} onClick={() => setFeedbackMode('both')}>
-              Both
-            </button>
+            
+            <div className="absolute inset-0 flex items-end justify-center pointer-events-none pb-2">
+              <div className="text-[100px] font-light leading-none tracking-tighter text-white/90">
+                {bpm}
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, opacity: feedbackMode === 'haptic' ? 0.3 : 1, pointerEvents: feedbackMode === 'haptic' ? 'none' : 'auto' }}>
-            <button style={{ background: 'none', border: 'none', color: isMuted ? 'var(--aura-rose)' : 'var(--aura-muted)', cursor: 'pointer', padding: 0 }} onClick={() => setIsMuted(!isMuted)}>
-              {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+          <div className="flex items-center gap-8 w-full max-w-[280px] mb-12">
+            <button 
+              onClick={() => adjustBpm(-5)} 
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white/90 transition-colors shrink-0"
+            >
+              <Minus size={20} strokeWidth={1.5} />
             </button>
-            <input type="range" min="0" max="1" step="0.05" value={volume}
-              onChange={(e) => { setVolume(parseFloat(e.target.value)); if (isMuted) setIsMuted(false); }}
-              style={{ flex: 1, accentColor: '#ffe16d', height: 3 }}
-              disabled={feedbackMode === 'haptic'}
+            <input 
+              type="range" 
+              min="30" max="300" 
+              value={bpm}
+              onChange={(e) => setBpm(parseInt(e.target.value))}
+              className="flex-1 h-0.5 rounded-full appearance-none bg-[#444] outline-none"
+              style={{ accentColor: '#ffe16d' }}
             />
-            <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, color: 'var(--aura-gold)', minWidth: 30, textAlign: 'right' }}>
-              {feedbackMode === 'haptic' ? '—' : isMuted ? '0' : `${Math.round(volume * 100)}`}
-            </span>
+            <button 
+              onClick={() => adjustBpm(5)} 
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white/90 transition-colors shrink-0"
+            >
+              <Plus size={20} strokeWidth={1.5} />
+            </button>
+          </div>
+
+          <div className="flex gap-4 w-full justify-center mb-8">
+            <button className="px-6 py-3 rounded-full bg-transparent text-[10px] font-medium tracking-widest text-white/50 hover:text-white/90 transition-colors" onClick={() => adjustBpm(-1)}>MINUS</button>
+            <button className="px-8 py-3 rounded-full bg-[#111] border border-[#2a2a2a] text-[10px] font-medium tracking-widest text-white/90 hover:bg-[#1a1a1a] transition-all" onClick={handleTapTempo}>TAP</button>
+            <button className="px-6 py-3 rounded-full bg-transparent text-[10px] font-medium tracking-widest text-white/50 hover:text-white/90 transition-colors" onClick={() => adjustBpm(1)}>PLUS</button>
           </div>
         </div>
-
-        {/* Performing Arts Cadence presets */}
-        <div>
-          <div className="eyebrow" style={{ marginBottom: 10 }}>Performing Arts Cadence</div>
-          <div className="card" style={{ padding: 0 }}>
-            {presets.map((preset, i) => (
-              <button
-                key={preset.name}
-                onClick={() => { setBpm(preset.bpm); if (audioContextRef.current && isPlaying) bpmRef.current = preset.bpm; }}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', padding: '12px 16px', background: 'transparent', border: 0,
-                  borderTop: i > 0 ? '1px solid var(--aura-border-soft)' : 'none',
-                  cursor: 'pointer', textAlign: 'left', color: 'inherit',
-                }}
+      ) : (
+        <div className="flex flex-col items-center w-full">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-8">
+            Subdivision Meter
+          </div>
+          <div className="grid grid-cols-4 gap-3 w-full max-w-[280px] mb-12">
+            {[{ beats: 4, label: '4/4' }, { beats: 3, label: '3/4' }, { beats: 6, label: '6/8' }, { beats: 5, label: '5/4' }].map((sig) => (
+              <button 
+                key={sig.beats}
+                onClick={() => { setBeatsPerMeasure(sig.beats); setActiveBeat(-1); }}
+                className={`py-4 rounded-3xl font-light text-sm transition-all duration-300 ${
+                  beatsPerMeasure === sig.beats 
+                    ? 'bg-[#111] text-white border border-[#2a2a2a]' 
+                    : 'bg-transparent text-white/50 hover:text-white/80'
+                }`}
               >
-                <div>
-                  <div className="label-syne" style={{ fontSize: 12, color: bpm === preset.bpm ? 'var(--aura-gold)' : 'var(--aura-body)' }}>{preset.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--aura-muted)', marginTop: 2, fontFamily: 'DM Sans' }}>{preset.desc}</div>
-                </div>
-                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 500, fontSize: 24, color: bpm === preset.bpm ? 'var(--aura-gold)' : 'var(--aura-cream)', letterSpacing: '-0.01em' }}>
-                  {preset.bpm}
-                </div>
+                {sig.label}
               </button>
             ))}
           </div>
+
+          <div className="flex flex-wrap justify-center gap-4 w-full max-w-[280px] mb-8">
+            {Array.from({ length: beatsPerMeasure }).map((_, idx) => {
+              const isFirst = idx === 0;
+              const isActive = activeBeat === idx;
+              return (
+                <div 
+                  key={idx} 
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-light text-xs transition-all duration-300 ${
+                    isActive 
+                      ? (isFirst ? 'bg-[#8de890] text-black scale-110' : 'bg-[#ffe16d] text-black scale-110')
+                      : 'bg-[#222] text-white/30'
+                  }`}
+                >
+                  {idx + 1}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* PLAYBACK CONTROL */}
+      <button 
+        onClick={handleTogglePlay}
+        className={`w-full max-w-[280px] mx-auto py-4 rounded-full text-xs font-medium tracking-widest transition-all flex items-center justify-center gap-3 ${
+          isPlaying ? 'bg-[#ff6b6b]/20 text-[#ff6b6b] hover:bg-[#ff6b6b]/30' : 'bg-[#333333] text-[#ffe16d] hover:bg-[#404040]'
+        }`}
+        style={{
+          boxShadow: isPlaying ? '0 0 30px rgba(255,107,107,0.2)' : '0 0 30px rgba(255,225,109,0.2)',
+          border: isPlaying ? '1px solid rgba(255,107,107,0.2)' : '1px solid rgba(255,225,109,0.15)'
+        }}
+      >
+        {isPlaying ? (
+          <><Square size={14} /> HALT CYCLE</>
+        ) : (
+          <><Play size={14} /> INITIATE PULSE</>
+        )}
+      </button>
+
+      {/* FEEDBACK SYSTEM PANEL */}
+      <div className="w-full flex flex-col items-center mt-8">
+        <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-6">
+          Output Routing
+        </div>
+        
+        <div className="flex bg-[#2a2a2a]/40 rounded-full p-1 w-full max-w-[280px] mb-8">
+          <button className={`flex-1 py-2.5 rounded-full text-[10px] font-medium tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${feedbackMode === 'audio' ? 'bg-[#111] text-white' : 'text-white/40 hover:text-white/60'}`} onClick={() => setFeedbackMode('audio')}>
+            <Volume2 size={12} /> AUDIO
+          </button>
+          <button className={`flex-1 py-2.5 rounded-full text-[10px] font-medium tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${feedbackMode === 'haptic' ? 'bg-[#111] text-white' : 'text-white/40 hover:text-white/60'}`} onClick={() => setFeedbackMode('haptic')}>
+            <Activity size={12} /> HAPTIC
+          </button>
+          <button className={`flex-1 py-2.5 rounded-full text-[10px] font-medium tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${feedbackMode === 'both' ? 'bg-[#111] text-white' : 'text-white/40 hover:text-white/60'}`} onClick={() => setFeedbackMode('both')}>
+            <Zap size={12} /> DUAL
+          </button>
         </div>
 
-        {/* Vocal Rhythm Judge */}
-        <VocalJudge bpm={bpm} isPlaying={isPlaying} onStartJudge={handleStartJudge} onStopJudge={handleStopJudge} />
-
+        <div className={`flex items-center gap-6 w-full max-w-[280px] transition-opacity duration-300 ${feedbackMode === 'haptic' ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+          <button className="text-white/40 hover:text-white/80 transition-colors" onClick={() => setIsMuted(!isMuted)}>
+            {isMuted ? <VolumeX size={16} strokeWidth={1.5} /> : <Volume2 size={16} strokeWidth={1.5} />}
+          </button>
+          <input type="range" min="0" max="1" step="0.05" value={volume}
+            onChange={(e) => { setVolume(parseFloat(e.target.value)); if (isMuted) setIsMuted(false); }}
+            className="flex-1 h-0.5 rounded-full appearance-none bg-[#444] outline-none"
+            style={{ accentColor: '#ffe16d' }}
+            disabled={feedbackMode === 'haptic'}
+          />
+        </div>
       </div>
 
-      <style>{`
-        @keyframes shake-short {
-          0%, 100% { transform: translate(0, 0); }
-          20% { transform: translate(-3px, 1px); }
-          60% { transform: translate(-2px, -2px); }
-        }
-        @keyframes shake-long {
-          0%, 100% { transform: translate(0, 0); }
-          20% { transform: translate(-4px, 2px); }
-          60% { transform: translate(-3px, -3px); }
-        }
-        .animate-shake-short { animation: shake-short 0.08s ease-in-out; }
-        .animate-shake-long { animation: shake-long 0.18s ease-in-out; }
-      `}</style>
+      {/* VIRTUAL HAPTIC SIMULATOR (Fallback for Desktop) */}
+      {!isVibrationSupported && (
+        <div className="w-full flex flex-col items-center mt-4">
+          <div className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase mb-8">
+            Virtual Haptics
+          </div>
+          
+          <div className="flex flex-col items-center justify-center py-8 w-full max-w-[280px] relative">
+            {/* Expanding Shockwaves */}
+            {isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') && vibeCount > 0 && (
+              <div 
+                key={`wave-${vibeCount}`} 
+                className={`absolute w-32 h-32 rounded-full border pointer-events-none ${
+                  isAccentVibe ? 'border-[#8de890]/20 animate-ping' : 'border-[#ffe16d]/20 animate-ping'
+                }`}
+              />
+            )}
+
+            {/* Stylized Holographic Phone */}
+            <div 
+              key={`vibe-${vibeCount}`}
+              className={`relative w-14 h-24 rounded-3xl flex flex-col items-center justify-between p-2.5 transition-all duration-75 select-none ${
+                isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') && vibeCount > 0
+                  ? (isAccentVibe ? 'bg-[#8de890]/10 border border-[#8de890]/20' : 'bg-[#ffe16d]/10 border border-[#ffe16d]/20')
+                  : 'bg-[#1a1a1a] border border-[#2a2a2a]'
+              }`}
+            >
+              <div className="w-4 h-0.5 bg-[#333] rounded-full mt-1" />
+              <div className="flex flex-col items-center gap-1">
+                <Zap className={`h-4 w-4 transition-all ${
+                  isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') && vibeCount > 0
+                    ? (isAccentVibe ? 'text-[#8de890] scale-110' : 'text-[#ffe16d]')
+                    : 'text-[#444]'
+                }`} strokeWidth={1.5} />
+              </div>
+              <div className="w-6 h-0.5 bg-[#333] rounded-full mb-1" />
+            </div>
+
+            {/* Status HUD */}
+            <div className="text-[9px] font-medium tracking-widest text-center mt-8 uppercase">
+              {isPlaying && (feedbackMode === 'haptic' || feedbackMode === 'both') ? (
+                vibeCount > 0 ? (
+                  isAccentVibe ? (
+                    <span className="text-[#8de890]">Downbeat (120ms)</span>
+                  ) : (
+                    <span className="text-[#ffe16d]">Standard (40ms)</span>
+                  )
+                ) : (
+                  <span className="text-white/40">Awaiting...</span>
+                )
+              ) : (
+                <span className="text-white/20">Motor Offline</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VOCAL RHYTHM JUDGE */}
+      <div className="w-full mt-8">
+        <VocalJudge bpm={bpm} isPlaying={isPlaying} onStartJudge={handleStartJudge} onStopJudge={handleStopJudge} />
+      </div>
+
     </div>
   );
 }

@@ -519,69 +519,37 @@ ${JSON.stringify(trackingHistory, null, 2)}
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     padding: '40px 24px', textAlign: 'center', position: 'relative',
                   }}>
-                    {/* Hero glow */}
-                    <div style={{
-                      position: 'absolute', top: '-120px', left: '50%', transform: 'translateX(-50%)',
-                      width: '600px', height: '440px',
-                      background: 'radial-gradient(ellipse, rgba(255,215,0,0.1), transparent 60%)',
-                      pointerEvents: 'none', opacity: 0.7,
-                    }} />
-
-                    {/* Concentric rotating arcs + tick ring */}
-                    <div style={{ position: 'relative', width: 160, height: 160, marginBottom: 32, flexShrink: 0 }}>
-                      {/* Outer arc — spins forward */}
-                      <svg width="160" height="160" style={{ position: 'absolute', inset: 0, animation: 'auraSpin 2.4s linear infinite' }}>
+                    {/* Minimalist sweeping loader arc */}
+                    <div style={{ position: 'relative', width: 120, height: 120, marginBottom: 40, flexShrink: 0 }}>
+                      <svg width="120" height="120" style={{ position: 'absolute', inset: 0, animation: 'auraSpin 1.5s linear infinite' }}>
                         <defs>
-                          <linearGradient id="arcGoldA" x1="0" y1="0" x2="1" y2="0">
+                          <linearGradient id="arcSweep" x1="0" y1="0" x2="1" y2="0">
                             <stop offset="0%" stopColor="rgba(255,225,109,0)" />
                             <stop offset="100%" stopColor="#ffe16d" />
                           </linearGradient>
                         </defs>
-                        <circle cx="80" cy="80" r="68" fill="none" stroke="url(#arcGoldA)" strokeWidth="2"
-                          strokeDasharray="180 360" strokeLinecap="round" />
-                      </svg>
-                      {/* Inner arc — spins reverse */}
-                      <svg width="160" height="160" style={{ position: 'absolute', inset: 0, animation: 'auraSpinReverse 3.6s linear infinite' }}>
-                        <defs>
-                          <linearGradient id="arcGoldB" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="rgba(255,215,0,0)" />
-                            <stop offset="100%" stopColor="#ffd700" />
-                          </linearGradient>
-                        </defs>
-                        <circle cx="80" cy="80" r="54" fill="none" stroke="url(#arcGoldB)" strokeWidth="1.5"
-                          strokeDasharray="100 360" strokeLinecap="round" />
-                      </svg>
-                      {/* 36-tick ring */}
-                      <svg width="160" height="160" style={{ position: 'absolute', inset: 0 }}>
-                        {Array.from({ length: 36 }).map((_, i) => {
-                          const a = (i / 36) * Math.PI * 2;
-                          return <line key={i}
-                            x1={80 + Math.cos(a) * 36} y1={80 + Math.sin(a) * 36}
-                            x2={80 + Math.cos(a) * 40} y2={80 + Math.sin(a) * 40}
-                            stroke="rgba(255,225,109,0.2)" strokeWidth="1" />;
-                        })}
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="url(#arcSweep)" strokeWidth="1.5"
+                          strokeDasharray="150 314" strokeLinecap="round" />
                       </svg>
                       {/* Center analytics icon */}
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--aura-gold)' }}>
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-                          <path d="M4 19V8m6 11V4m6 15v-7m6 7v-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.8))' }} />
-                        </svg>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffe16d' }}>
+                        <Activity size={24} strokeWidth={1.5} />
                       </div>
                     </div>
 
-                    <div className="h-title" style={{ fontSize: 22, marginBottom: 12, color: 'var(--aura-gold)', letterSpacing: '0.06em' }}>
+                    <div className="h-title" style={{ fontSize: 24, fontWeight: 300, marginBottom: 12, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.02em' }}>
                       Evaluation in Progress
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--aura-cream)', lineHeight: 1.5, height: 36, maxWidth: 290, marginBottom: 18 }}>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, height: 36, maxWidth: 290, marginBottom: 18, fontWeight: 500 }}>
                       <span className="shimmer-text">{processingPhase}</span>
                     </div>
 
                     {/* Scan line */}
-                    <div style={{ width: 56, height: 1, background: 'rgba(255,225,109,0.15)', overflow: 'hidden', position: 'relative', borderRadius: 1 }}>
-                      <div style={{ position: 'absolute', inset: 0, width: '40%', background: 'linear-gradient(90deg, transparent, var(--aura-gold), transparent)', animation: 'auraScan 1.4s linear infinite' }} />
+                    <div style={{ width: 80, height: 2, background: 'rgba(255,255,255,0.05)', overflow: 'hidden', position: 'relative', borderRadius: 2 }}>
+                      <div style={{ position: 'absolute', inset: 0, width: '40%', background: '#ffe16d', animation: 'auraScan 1.4s linear infinite', borderRadius: 2 }} />
                     </div>
 
-                    <div className="eyebrow-muted" style={{ marginTop: 18, fontSize: 9 }}>Avg. Latency ~3.5s</div>
+                    <div className="eyebrow-muted" style={{ marginTop: 24, fontSize: 9, opacity: 0.5 }}>Analyzing Biomechanics</div>
                   </div>
                 )}
                 {view === 'results' && (
@@ -622,18 +590,18 @@ ${JSON.stringify(trackingHistory, null, 2)}
       {/* ── FLOATING PILL NAV ── */}
       <nav style={{
         position: 'fixed',
-        bottom: '18px',
+        bottom: '24px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 50,
         display: 'flex',
         gap: '4px',
-        padding: '8px',
-        background: 'rgba(12,15,15,0.92)',
+        padding: '6px',
+        background: 'rgba(20, 20, 20, 0.85)',
         backdropFilter: 'blur(20px)',
-        border: '1px solid var(--aura-border)',
+        border: '1px solid rgba(255,255,255,0.05)',
         borderRadius: '999px',
-        boxShadow: '0 16px 40px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,225,109,0.06)',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.8)',
       }}>
         {[
           { id: 'coach', icon: 'analytics', label: 'Evaluate' },
@@ -651,18 +619,17 @@ ${JSON.stringify(trackingHistory, null, 2)}
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '10px 14px',
+                padding: '12px 18px',
                 borderRadius: '999px',
                 border: 0,
-                background: active ? 'linear-gradient(180deg, #ffe87a, #ffd23a)' : 'transparent',
-                color: active ? '#2b2200' : 'var(--aura-cream)',
+                background: active ? '#2a2a2a' : 'transparent',
+                color: active ? '#ffe16d' : 'rgba(255,255,255,0.5)',
                 fontFamily: 'DM Sans, sans-serif',
-                fontWeight: 700,
-                fontSize: '10px',
-                letterSpacing: '0.02em',
+                fontWeight: 500,
+                fontSize: '11px',
+                letterSpacing: '0.05em',
                 cursor: 'pointer',
-                transition: 'all 0.25s cubic-bezier(.4,0,.2,1)',
-                boxShadow: active ? '0 0 0 1px rgba(255,215,0,0.4), 0 6px 18px -6px rgba(255,215,0,0.5)' : 'none',
+                transition: 'all 0.3s ease',
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '18px', fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
@@ -671,7 +638,7 @@ ${JSON.stringify(trackingHistory, null, 2)}
                 opacity: active ? 1 : 0,
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
-                transition: 'max-width 0.3s, opacity 0.2s',
+                transition: 'max-width 0.3s ease, opacity 0.2s ease',
                 marginLeft: active ? '2px' : 0,
               }}>{label}</span>
             </button>
