@@ -19,6 +19,9 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
   const cameraInstanceRef = useRef(null);
   const latestLandmarksRef = useRef(null);
   const requestRef = useRef(null);
+  const resolveFramePromiseRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
   
   const [modelLoading, setModelLoading] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
@@ -33,6 +36,7 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
   const [uploadedFileUrl, setUploadedFileUrl] = useState(null);
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [rawFile, setRawFile] = useState(null);
   
   // For live stats rendering
   const [liveMetrics, setLiveMetrics] = useState({
@@ -277,6 +281,13 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
               }
             }
           }
+
+          // Always resolve the pending frame promise if one is active to prevent blocking the scan loop
+          if (resolveFramePromiseRef.current) {
+            const resolveFn = resolveFramePromiseRef.current;
+            resolveFramePromiseRef.current = null;
+            resolveFn();
+          }
         });
 
         poseInstanceRef.current = pose;
@@ -402,6 +413,7 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
     }
 
     const fileUrl = URL.createObjectURL(file);
+    setRawFile(file);
     setUploadedFileUrl(fileUrl);
     setUploadedFileName(file.name);
     setIsRecording(false);
@@ -475,7 +487,14 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
           bgVideo.removeEventListener('seeked', onSeeked);
           if (poseInstanceRef.current) {
             try {
-              await poseInstanceRef.current.send({ image: bgVideo });
+              // Wait for the pose processing callback (onResults) to complete for this frame
+              await new Promise((resolveFrame) => {
+                resolveFramePromiseRef.current = resolveFrame;
+                poseInstanceRef.current.send({ image: bgVideo }).catch(err => {
+                  console.error("Pose send error:", err);
+                  resolveFrame();
+                });
+              });
             } catch (err) {
               console.error("Frame processing error during seek:", err);
             }
@@ -507,6 +526,11 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
     if (isRecordingRef.current && onBackgroundTelemetryReady) {
       onBackgroundTelemetryReady(historyRef.current);
     }
+
+    // Automatically stop recording and trigger UI processing view
+    if (isRecordingRef.current) {
+      stopRecording();
+    }
   };
 
   const startRecording = () => {
@@ -528,6 +552,44 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
 
     // Slice frames every 200ms (5 FPS) - Only run wall-clock interval for webcam
     if (sourceMode === 'webcam') {
+      // Set up video feed recorder
+      recordedChunksRef.current = [];
+      let stream = null;
+      if (videoRef.current && videoRef.current.srcObject) {
+        stream = videoRef.current.srcObject;
+      } else if (videoRef.current && videoRef.current.captureStream) {
+        stream = videoRef.current.captureStream();
+      }
+
+      if (stream) {
+        try {
+          let options = {};
+          if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+            options = { mimeType: 'video/webm;codecs=vp9' };
+          } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+            options = { mimeType: 'video/webm;codecs=vp8' };
+          } else if (MediaRecorder.isTypeSupported('video/webm')) {
+            options = { mimeType: 'video/webm' };
+          } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+            options = { mimeType: 'video/mp4' };
+          }
+
+          const mediaRecorder = new MediaRecorder(stream, options);
+          mediaRecorderRef.current = mediaRecorder;
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+              recordedChunksRef.current.push(event.data);
+            }
+          };
+          mediaRecorder.start(100); // chunk every 100ms
+          console.log("[BioForm] MediaRecorder started successfully.", options);
+        } catch (err) {
+          console.error("[BioForm] Failed to start MediaRecorder:", err);
+        }
+      } else {
+        console.warn("[BioForm] No webcam stream found to record.");
+      }
+
       recordingIntervalRef.current = setInterval(() => {
         const elapsedMs = Date.now() - startTime;
         const landmarks = latestLandmarksRef.current;
@@ -569,13 +631,30 @@ export default function PoseTracker({ onAnalysisComplete, onBackgroundTelemetryR
       setIsPlaying(false);
     }
     
-    setIsRecording(false);
-    
     const finalHistory = historyRef.current;
-    if (finalHistory.length > 0) {
-      onAnalysisComplete(finalHistory, sourceModeRef.current);
+    
+    // Stop MediaRecorder if running and wait for the file blob compilation
+    if (sourceModeRef.current === 'webcam' && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { 
+          type: mediaRecorderRef.current.mimeType || 'video/webm' 
+        });
+        const fileExt = (mediaRecorderRef.current.mimeType || 'video/webm').includes('mp4') ? 'mp4' : 'webm';
+        const file = new File([blob], `webcam_recording_${Date.now()}.${fileExt}`, { type: blob.type });
+        
+        if (finalHistory.length > 0) {
+          onAnalysisComplete(finalHistory, sourceModeRef.current, file);
+        } else {
+          alert("No movement data was captured. Ensure your body is fully visible in the camera frame and try again.");
+        }
+      };
+      mediaRecorderRef.current.stop();
     } else {
-      alert("No movement data was captured. Ensure your body is fully visible in the camera frame and try again.");
+      if (finalHistory.length > 0) {
+        onAnalysisComplete(finalHistory, sourceModeRef.current, rawFile);
+      } else {
+        alert("No movement data was captured. Ensure your body is fully visible in the camera frame and try again.");
+      }
     }
   };
 

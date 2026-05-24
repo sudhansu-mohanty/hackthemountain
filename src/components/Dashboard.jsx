@@ -10,15 +10,14 @@ export default function Dashboard({ analysisText, trackingData, onReset, isUploa
     if (!analysisText) return { score: 70, sections: [] };
 
     const lines = analysisText.trim().split('\n');
-    const firstLine = lines[0];
 
-    // Regex to match "SCORE: [number]/100" or similar
-    const scoreMatch = firstLine.match(/SCORE:\s*(\d+)/i);
+    // Regex to match "SCORE: [number]/100" anywhere in the response text
+    const scoreMatch = analysisText.match(/SCORE:\s*(\d+)/i);
     let score = scoreMatch ? parseInt(scoreMatch[1], 10) : 70;
 
     if (isUploadedVideo) {
-      // Buff and clamp scores for uploaded videos (never under 50, never over 95)
-      score = Math.max(50, Math.min(95, score));
+      // Buff uploaded video scores by 1.2x and clamp (never under 50, never over 95)
+      score = Math.max(50, Math.min(95, Math.round(score * 1.2)));
     }
 
     // Remaining content excluding the first line
