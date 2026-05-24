@@ -11,7 +11,7 @@ import CommunityFeed from './components/CommunityFeed';
 import UserDashboard from './components/UserDashboard';
 import AuthGate from './components/AuthGate';
 
-const withTimeout = (promise, timeoutMs = 6000, errorMsg = 'Connection timed out') => {
+const withTimeout = (promise, timeoutMs = 15000, errorMsg = 'Connection timed out') => {
   return Promise.race([
     promise,
     new Promise((_, reject) => 
@@ -64,7 +64,7 @@ export default function App() {
           .select('*')
           .eq('id', authUser.id)
           .single(),
-        6000
+        15000
       );
 
       if (error) {
@@ -76,7 +76,7 @@ export default function App() {
           supabase
             .from('profiles')
             .insert([newUser]),
-          6000
+          15000
         );
 
         if (!insertErr) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, Sparkles, X, Loader, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../utils/supabaseClient';
 
-const withTimeout = (promise, timeoutMs = 8000, errorMsg = 'Connection timed out. Please check if your network connection, firewall, or an adblocker is blocking Supabase.') => {
+const withTimeout = (promise, timeoutMs = 15000, errorMsg = 'Connection timed out. Please check if your network connection, firewall, or an adblocker is blocking Supabase.') => {
   return Promise.race([
     promise,
     new Promise((_, reject) => 
@@ -49,7 +49,7 @@ export default function AuthGate({ onClose, onAuthSuccess }) {
             email: cleanEmail,
             password: cleanPassword
           }),
-          8000
+          15000
         );
 
         if (authError) throw authError;
@@ -71,7 +71,7 @@ export default function AuthGate({ onClose, onAuthSuccess }) {
             .from('profiles')
             .select('username')
             .eq('username', cleanUsername),
-          8000
+          15000
         );
 
         if (checkError) throw checkError;
@@ -90,7 +90,7 @@ export default function AuthGate({ onClose, onAuthSuccess }) {
               data: { username: cleanUsername }
             }
           }),
-          8000
+          15000
         );
 
         if (signUpError) throw signUpError;
@@ -104,7 +104,7 @@ export default function AuthGate({ onClose, onAuthSuccess }) {
                 id: data.user.id,
                 username: cleanUsername
               }]),
-            8000
+            15000
           );
 
           if (profileError) {
